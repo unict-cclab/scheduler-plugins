@@ -18,6 +18,8 @@ package main
 
 import (
 	"os"
+	"sigs.k8s.io/scheduler-plugins/pkg/sophos/networkaware"
+	"sigs.k8s.io/scheduler-plugins/pkg/sophos/resourceaware"
 
 	"k8s.io/component-base/cli"
 	_ "k8s.io/component-base/metrics/prometheus/clientgo" // for rest client metric registration
@@ -58,6 +60,8 @@ func main() {
 		// app.WithPlugin(crossnodepreemption.Name, crossnodepreemption.New),
 		app.WithPlugin(podstate.Name, podstate.New),
 		app.WithPlugin(qos.Name, qos.New),
+		app.WithPlugin(networkaware.Name, networkaware.New),
+		app.WithPlugin(resourceaware.Name, resourceaware.New),
 	)
 
 	code := cli.Run(command)

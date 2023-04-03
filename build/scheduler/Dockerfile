@@ -18,7 +18,7 @@ WORKDIR /go/src/sigs.k8s.io/scheduler-plugins
 COPY . .
 ARG ARCH
 ARG RELEASE_VERSION
-RUN RELEASE_VERSION=${RELEASE_VERSION} make build-scheduler.$ARCH
+RUN make RELEASE_VERSION=${RELEASE_VERSION} build-scheduler.$ARCH
 
 FROM $ARCH/alpine:3.16
 

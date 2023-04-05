@@ -41,15 +41,15 @@ func GetAppCpuUsage(ctx context.Context, handle framework.Handle, pod *v1.Pod) f
 		return 0.0
 	}
 
-	cpuUsageAnnotation, ok := deployment.Labels["cpu-usage"]
+	cpuUsageLabel, ok := deployment.Labels["cpu-usage"]
 	if !ok {
-		klog.Infof("\"cpu-usage\" annotation not found on Deployment %s", deployment.Name)
+		klog.Infof("\"cpu-usage\" label not found on Deployment %s", deployment.Name)
 		return 0.0
 	}
 
-	cpuUsage, err := strconv.ParseFloat(cpuUsageAnnotation, 64)
+	cpuUsage, err := strconv.ParseFloat(cpuUsageLabel, 64)
 	if err != nil {
-		klog.Infof("Error parsing \"cpu-usage\" annotation of Deployment %s", deployment.Name)
+		klog.Infof("Error parsing \"cpu-usage\" label of Deployment %s", deployment.Name)
 		return 0.0
 	}
 
@@ -63,15 +63,15 @@ func GetAppMemoryUsage(ctx context.Context, handle framework.Handle, pod *v1.Pod
 		return 0.0
 	}
 
-	memoryUsageAnnotation, ok := deployment.Labels["cpu-usage"]
+	memoryUsageLabel, ok := deployment.Labels["cpu-usage"]
 	if !ok {
-		klog.Infof("\"memory-usage\" annotation not found on Deployment %s", deployment.Name)
+		klog.Infof("\"memory-usage\" label not found on Deployment %s", deployment.Name)
 		return 0.0
 	}
 
-	memoryUsage, err := strconv.ParseFloat(memoryUsageAnnotation, 64)
+	memoryUsage, err := strconv.ParseFloat(memoryUsageLabel, 64)
 	if err != nil {
-		klog.Infof("Error parsing \"memory-usage\" annotation of Deployment %s", deployment.Name)
+		klog.Infof("Error parsing \"memory-usage\" label of Deployment %s", deployment.Name)
 		return 0.0
 	}
 
@@ -96,15 +96,15 @@ func GetAppTraffic(ctx context.Context, handle framework.Handle, pod *v1.Pod, pe
 		return 0.0
 	}
 
-	trafficAnnotation, ok := deployment.Labels["traffic."+peerAppName]
+	trafficLabel, ok := deployment.Labels["traffic."+peerAppName]
 	if !ok {
-		klog.Infof("\"traffic.%s\" annotation not found on Deployment %s", deployment.Name)
+		klog.Infof("\"traffic.%s\" label not found on Deployment %s", deployment.Name)
 		return 0.0
 	}
 
-	traffic, err := strconv.ParseFloat(trafficAnnotation, 64)
+	traffic, err := strconv.ParseFloat(trafficLabel, 64)
 	if err != nil {
-		klog.Infof("Error parsing \"traffic.%s\" annotation of Deployment %s", deployment.Name)
+		klog.Infof("Error parsing \"traffic.%s\" label of Deployment %s", deployment.Name)
 		return 0.0
 	}
 
@@ -112,15 +112,15 @@ func GetAppTraffic(ctx context.Context, handle framework.Handle, pod *v1.Pod, pe
 }
 
 func GetLatency(node *v1.Node, peerNode *v1.Node) float64 {
-	latencyAnnotation, ok := node.Labels["network-latency."+peerNode.Name]
+	latencyLabel, ok := node.Labels["network-latency."+peerNode.Name]
 	if !ok {
-		klog.Infof("\"network-latency.%s\" annotation not found on node %s", peerNode.Name, node.Name)
+		klog.Infof("\"network-latency.%s\" label not found on node %s", peerNode.Name, node.Name)
 		return 0.0
 	}
 
-	latency, err := strconv.ParseFloat(latencyAnnotation, 64)
+	latency, err := strconv.ParseFloat(latencyLabel, 64)
 	if err != nil {
-		klog.Infof("Error parsing \"network-latency.%s\" annotation of node %s", peerNode.Name, node.Name)
+		klog.Infof("Error parsing \"network-latency.%s\" label of node %s", peerNode.Name, node.Name)
 		return 0.0
 	}
 

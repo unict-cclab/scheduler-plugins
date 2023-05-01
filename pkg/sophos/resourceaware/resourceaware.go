@@ -65,7 +65,7 @@ func (pl *ResourceAware) ScoreExtensions() framework.ScoreExtensions {
 	return pl
 }
 
-func (pl *ResourceAware) NormalizeScore(_ context.Context, _ *framework.CycleState, _ *v1.Pod, scores framework.NodeScoreList) *framework.Status {
+func (pl *ResourceAware) NormalizeScore(_ context.Context, _ *framework.CycleState, pod *v1.Pod, scores framework.NodeScoreList) *framework.Status {
 	// Find highest and lowest scores.
 	var highest int64 = -math.MaxInt64
 	var lowest int64 = math.MaxInt64
@@ -87,6 +87,7 @@ func (pl *ResourceAware) NormalizeScore(_ context.Context, _ *framework.CycleSta
 		} else {
 			scores[i].Score = ((nodeScore.Score - lowest) * newRange / oldRange) + framework.MinNodeScore
 		}
+		klog.Infof("Score of node %q for pod %q: %d", scores[i].Name, pod.Name, scores[i].Score)
 	}
 
 	return nil

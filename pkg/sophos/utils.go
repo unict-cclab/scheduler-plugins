@@ -63,7 +63,7 @@ func GetAppMemoryUsage(ctx context.Context, handle framework.Handle, pod *v1.Pod
 		return 0.0
 	}
 
-	memoryUsageAnnotation, ok := deployment.Annotations["cpu-usage"]
+	memoryUsageAnnotation, ok := deployment.Annotations["memory-usage"]
 	if !ok {
 		klog.Infof("\"memory-usage\" annotation not found on Deployment %s", deployment.Name)
 		return 0.0
@@ -79,12 +79,12 @@ func GetAppMemoryUsage(ctx context.Context, handle framework.Handle, pod *v1.Pod
 }
 
 func GetAppTraffic(ctx context.Context, handle framework.Handle, pod *v1.Pod, peerPod *v1.Pod) float64 {
-	peerAppGroupName, ok := peerPod.Annotations["app-group"]
-	if !ok || peerAppGroupName != pod.Annotations["app-group"] {
+	peerAppGroupName, ok := peerPod.Labels["app-group"]
+	if !ok || peerAppGroupName != pod.Labels["app-group"] {
 		return 0.0
 	}
 
-	peerAppName, ok := peerPod.Annotations["app"]
+	peerAppName, ok := peerPod.Labels["app"]
 	if !ok {
 		klog.Infof("\"app\" annotation not found on Pod %s", peerPod.Name)
 		return 0.0

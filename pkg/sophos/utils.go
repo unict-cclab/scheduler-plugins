@@ -111,6 +111,38 @@ func GetAppTraffic(ctx context.Context, handle framework.Handle, pod *v1.Pod, pe
 	return traffic
 }
 
+func GetNodeMemoryUsage(node *v1.Node) float64 {
+	memoryUsageAnnotation, ok := node.Annotations["memory-usage"]
+	if !ok {
+		klog.Infof("\"memory-usage\" annotation not found on node %s", node.Name)
+		return 0.0
+	}
+
+	memoryUsage, err := strconv.ParseFloat(memoryUsageAnnotation, 64)
+	if err != nil {
+		klog.Infof("error parsing \"memory-usage\" annotation of node %s", node.Name)
+		return 0.0
+	}
+
+	return memoryUsage
+}
+
+func GetNodeCpuUsage(node *v1.Node) float64 {
+	cpuUsageAnnotation, ok := node.Annotations["cpu-usage"]
+	if !ok {
+		klog.Infof("\"cpu-usage\" annotation not found on node %s", node.Name)
+		return 0.0
+	}
+
+	cpuUsage, err := strconv.ParseFloat(cpuUsageAnnotation, 64)
+	if err != nil {
+		klog.Infof("error parsing \"cpu-usage\" annotation of node %s", node.Name)
+		return 0.0
+	}
+
+	return cpuUsage
+}
+
 func GetNodeLatency(node *v1.Node, peerNode *v1.Node) float64 {
 	latencyAnnotation, ok := node.Annotations["network-latency."+peerNode.Name]
 	if !ok {

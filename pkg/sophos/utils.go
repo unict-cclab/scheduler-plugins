@@ -86,7 +86,7 @@ func GetAppTraffic(ctx context.Context, handle framework.Handle, pod *v1.Pod, pe
 
 	peerAppName, ok := peerPod.Labels["app"]
 	if !ok {
-		klog.Infof("\"app\" annotation not found on Pod %s", peerPod.Name)
+		klog.Infof("\"app\" label not found on Pod %s", peerPod.Name)
 		return 0.0
 	}
 
@@ -98,13 +98,13 @@ func GetAppTraffic(ctx context.Context, handle framework.Handle, pod *v1.Pod, pe
 
 	trafficAnnotation, ok := deployment.Annotations["traffic."+peerAppName]
 	if !ok {
-		klog.Infof("\"traffic.%s\" annotation not found on Deployment %s", deployment.Name)
+		klog.Infof("\"traffic.%s\" annotation not found on Deployment %s", peerAppName, deployment.Name)
 		return 0.0
 	}
 
 	traffic, err := strconv.ParseFloat(trafficAnnotation, 64)
 	if err != nil {
-		klog.Infof("error parsing \"traffic.%s\" annotation of Deployment %s", deployment.Name)
+		klog.Infof("error parsing \"traffic.%s\" annotation of Deployment %s", peerAppName, deployment.Name)
 		return 0.0
 	}
 

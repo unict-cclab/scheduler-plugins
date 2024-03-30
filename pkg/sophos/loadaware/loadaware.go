@@ -1,11 +1,9 @@
-package resourceaware
+package loadaware
 
 import (
 	"context"
 	"fmt"
 	"math"
-	"os"
-	"strconv"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -15,22 +13,20 @@ import (
 )
 
 const (
-	Name          = "ResourceAware"
-	DefaultWeight = 0.5
+	Name = "LoadAware"
 )
 
-type ResourceAware struct {
+type LoadAware struct {
 	handle framework.Handle
-	weight float64
 }
 
-var _ = framework.ScorePlugin(&ResourceAware{})
+var _ = framework.ScorePlugin(&LoadAware{})
 
-func (pl *ResourceAware) Name() string {
+func (pl *LoadAware) Name() string {
 	return Name
 }
 
-func (pl *ResourceAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.Pod, nodeName string) (int64, *framework.Status) {
+func (pl *LoadAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.Pod, nodeName string) (int64, *framework.Status) {
 	klog.Infof("Scoring node %q for pod %q", nodeName, pod.Name)
 
 	node, err := pl.handle.SnapshotSharedLister().NodeInfos().Get(nodeName)
@@ -38,19 +34,20 @@ func (pl *ResourceAware) Score(ctx context.Context, _ *framework.CycleState, pod
 		return 0, framework.NewStatus(framework.Error, fmt.Sprintf("error getting info for node %q: %v", nodeName, err))
 	}
 
-	cpuScore := -(sophos.GetAppCpuUsage(ctx, pl.handle, pod) + sophos.GetNodeCpuUsage(node.Node())) * 100 / float64(node.Allocatable.MilliCPU)
-	memoryScore := -(sophos.GetAppMemoryUsage(ctx, pl.handle, pod) + sophos.GetNodeMemoryUsage(node.Node())) * 100 / float64(node.Allocatable.Memory)
+	cpuUsageRatio := -(sophos.GetAppCpuUsage(ctx, pl.handle, pod) + sophos.GetNodeCpuUsage(node.Node())) * 100 / float64(node.Allocatable.MilliCPU)
+	memoryUsageRatio := -(sophos.GetAppMemoryUsage(ctx, pl.handle, pod) + sophos.GetNodeMemoryUsage(node.Node())) * 100 / float64(node.Allocatable.Memory)
 
-	score := pl.weight*cpuScore + (1-pl.weight)*memoryScore
+	std := math.Abs((cpuUsageRatio - memoryUsageRatio) / 2)
+	score := int64((1 - std) * float64(framework.MaxNodeScore))
 
-	return int64(score), nil
+	return score, nil
 }
 
-func (pl *ResourceAware) ScoreExtensions() framework.ScoreExtensions {
+func (pl *LoadAware) ScoreExtensions() framework.ScoreExtensions {
 	return pl
 }
 
-func (pl *ResourceAware) NormalizeScore(_ context.Context, _ *framework.CycleState, pod *v1.Pod, scores framework.NodeScoreList) *framework.Status {
+func (pl *LoadAware) NormalizeScore(_ context.Context, _ *framework.CycleState, pod *v1.Pod, scores framework.NodeScoreList) *framework.Status {
 	// Find highest and lowest scores.
 	var highest int64 = -math.MaxInt64
 	var lowest int64 = math.MaxInt64
@@ -79,16 +76,8 @@ func (pl *ResourceAware) NormalizeScore(_ context.Context, _ *framework.CycleSta
 }
 
 func New(_ runtime.Object, h framework.Handle) (framework.Plugin, error) {
-	var weight = DefaultWeight
-
-	weight, err := strconv.ParseFloat(os.Getenv("RA_WEIGHT"), 64)
-	if err != nil {
-		klog.Infof("Defaulting weight parameter to 0.5")
-	}
-
-	pl := &ResourceAware{
+	pl := &LoadAware{
 		handle: h,
-		weight: weight,
 	}
 	return pl, nil
 }

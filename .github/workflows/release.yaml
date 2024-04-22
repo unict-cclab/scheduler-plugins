@@ -40,7 +40,7 @@ jobs:
         shell: bash
         env:
           RELEASE_VERSION: ${{ steps.vars.outputs.tag }}
-          REGISTRY: ${{ env.REGISTRY }}/amarchese96
+          REGISTRY: ${{ env.REGISTRY }}/unict-cclab
           IMG: sophos-scheduler:${{ steps.vars.outputs.tag }}
       
       - name: Push image
@@ -50,4 +50,4 @@ jobs:
           docker push ${IMG}
         shell: bash
         env:
-          IMG: ${{ env.REGISTRY }}/amarchese96/sophos-scheduler:${{ steps.vars.outputs.tag }}
+          IMG: ${{ env.REGISTRY }}/unict-cclab/sophos-scheduler:${{ steps.vars.outputs.tag }}

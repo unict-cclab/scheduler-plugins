@@ -118,7 +118,7 @@ func (c *CapacityScheduling) Name() string {
 }
 
 // New initializes a new plugin and returns it.
-func New(obj runtime.Object, handle framework.Handle) (framework.Plugin, error) {
+func New(ctx context.Context, obj runtime.Object, handle framework.Handle) (framework.Plugin, error) {
 	c := &CapacityScheduling{
 		fh:                handle,
 		elasticQuotaInfos: NewElasticQuotaInfos(),
@@ -136,8 +136,8 @@ func New(obj runtime.Object, handle framework.Handle) (framework.Plugin, error) 
 	if err != nil {
 		return nil, err
 	}
-	// TODO: pass in context.
-	elasticQuotaInformer, err := dynamicCache.GetInformer(context.Background(), &v1alpha1.ElasticQuota{})
+
+	elasticQuotaInformer, err := dynamicCache.GetInformer(ctx, &v1alpha1.ElasticQuota{})
 	if err != nil {
 		return nil, err
 	}
@@ -376,6 +376,10 @@ type preemptor struct {
 	state *framework.CycleState
 }
 
+func (p *preemptor) OrderedScoreFuncs(ctx context.Context, nodesToVictims map[string]*extenderv1.Victims) []func(node string) int64 {
+	return nil
+}
+
 func (p *preemptor) GetOffsetAndNumCandidates(n int32) (int32, int32) {
 	return 0, n
 }
@@ -402,7 +406,7 @@ func (p *preemptor) PodEligibleToPreemptOthers(pod *v1.Pod, nominatedNodeStatus 
 
 	preFilterState, err := getPreFilterState(p.state)
 	if err != nil {
-		klog.ErrorS(err, "Failed to read preFilterState from cycleState", "preFilterStateKey", preFilterStateKey)
+		klog.V(5).InfoS("Failed to read preFilterState from cycleState, err: %s", err, "preFilterStateKey", preFilterStateKey)
 		return false, "not eligible due to failed to read from cycleState"
 	}
 
@@ -493,8 +497,9 @@ func (p *preemptor) SelectVictimsOnNode(
 	var nominatedPodsReqWithPodReq framework.Resource
 	podReq := preFilterState.podReq
 
+	logger := klog.FromContext(ctx)
 	removePod := func(rpi *framework.PodInfo) error {
-		if err := nodeInfo.RemovePod(rpi.Pod); err != nil {
+		if err := nodeInfo.RemovePod(logger, rpi.Pod); err != nil {
 			return err
 		}
 		status := p.fh.RunPreFilterExtensionRemovePod(ctx, state, pod, rpi, nodeInfo)

@@ -39,7 +39,7 @@ rules:
   resources: ["replicationcontrollers", "services"]
   verbs: ["get", "list", "watch"]
 - apiGroups: ["apps", "extensions"]
-  resources: ["replicasets"]
+  resources: ["replicasets", "deployments"]
   verbs: ["get", "list", "watch"]
 - apiGroups: ["apps"]
   resources: ["statefulsets"]

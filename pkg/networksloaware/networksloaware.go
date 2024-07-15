@@ -59,7 +59,7 @@ func (pl *NetworkSloAware) Score(ctx context.Context, _ *framework.CycleState, p
 				if err != nil {
 					return 0, framework.NewStatus(framework.Error, fmt.Sprintf("error getting chain slo sum for pods %s and %s", pod.Name, peerPod.Name))
 				}
-				score -= int64(nodeLatency / chainSloSum)
+				score -= int64(nodeLatency * 100 / chainSloSum)
 			}
 		}
 	}

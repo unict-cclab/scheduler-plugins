@@ -93,7 +93,8 @@ func (pl *NetworkSloAware) NormalizeScore(_ context.Context, _ *framework.CycleS
 		} else {
 			scores[i].Score = ((nodeScore.Score - lowest) * newRange / oldRange) + framework.MinNodeScore
 		}
-		klog.Infof("score of node %q for pod %q: %d", scores[i].Name, pod.Name, scores[i].Score)
+		klog.Infof("Original score of node %q for pod %q: %d", scores[i].Name, pod.Name, nodeScore.Score)
+		klog.Infof("Normalized score of node %q for pod %q: %d", scores[i].Name, pod.Name, scores[i].Score)
 	}
 
 	return nil

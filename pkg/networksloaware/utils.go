@@ -52,7 +52,7 @@ func AreLesserOrderPodsScheduled(ctx context.Context, handle framework.Handle, p
 				}
 
 				for _, lesserOrderPod := range lesserOrderPods.Items {
-					if lesserOrderPod.Status.Phase == v1.PodPending {
+					if lesserOrderPod.Spec.NodeName == "" {
 						return false
 					}
 				}

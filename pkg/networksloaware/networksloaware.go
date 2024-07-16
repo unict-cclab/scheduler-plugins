@@ -34,11 +34,22 @@ func (pl *NetworkSloAware) PreFilter(ctx context.Context, state *framework.Cycle
 	}
 
 	klog.Infof("pod %s not ready to be scheduled", pod.Name)
-	return nil, framework.NewStatus(framework.UnschedulableAndUnresolvable, fmt.Sprintf("pod %s not ready to be scheduled", pod.Name))
+	return nil, framework.NewStatus(framework.Code(framework.Queue), fmt.Sprintf("pod %s not ready to be scheduled", pod.Name))
 }
 
 func (pl *NetworkSloAware) PreFilterExtensions() framework.PreFilterExtensions {
 	return nil
+}
+
+func (pl *NetworkSloAware) EventsToRegister() []framework.ClusterEventWithHint {
+	return []framework.ClusterEventWithHint{
+		{Event: framework.ClusterEvent{Resource: framework.Pod, ActionType: framework.Update}, QueueingHintFn: pl.isSchedulableAfterPodChange},
+	}
+}
+
+func (pl *NetworkSloAware) isSchedulableAfterPodChange(logger klog.Logger, pod *v1.Pod, oldObj, newObj interface{}) (framework.QueueingHint, error) {
+	klog.Infof("trying to renqueue pod %s", pod.Name)
+	return framework.Queue, nil
 }
 
 func (pl *NetworkSloAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.Pod, nodeName string) (int64, *framework.Status) {

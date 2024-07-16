@@ -29,8 +29,11 @@ func (pl *NetworkSloAware) Name() string {
 
 func (pl *NetworkSloAware) PreEnqueue(ctx context.Context, pod *v1.Pod) *framework.Status {
 	if !AreLesserOrderPodsScheduled(ctx, pl.handle, pod) {
+		klog.Infof("waiting for lesser order pods to be scheduled before scheduling pod: %s", pod.Name)
 		return framework.NewStatus(framework.UnschedulableAndUnresolvable, fmt.Sprintf("waiting for lesser order pods to be scheduled before scheduling pod: %s", pod.Name))
 	}
+
+	klog.Infof("pod: %s ready to be scheduled", pod.Name)
 
 	return nil
 }

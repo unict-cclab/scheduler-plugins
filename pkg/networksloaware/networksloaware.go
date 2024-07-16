@@ -20,21 +20,24 @@ type NetworkSloAware struct {
 	handle framework.Handle
 }
 
-var _ = framework.PreEnqueuePlugin(&NetworkSloAware{})
+var _ = framework.PreFilterPlugin(&NetworkSloAware{})
 var _ = framework.ScorePlugin(&NetworkSloAware{})
 
 func (pl *NetworkSloAware) Name() string {
 	return Name
 }
 
-func (pl *NetworkSloAware) PreEnqueue(ctx context.Context, pod *v1.Pod) *framework.Status {
-	if !AreLesserOrderPodsScheduled(ctx, pl.handle, pod) {
-		klog.Infof("waiting for lesser order pods to be scheduled before scheduling pod: %s", pod.Name)
-		return framework.NewStatus(framework.UnschedulableAndUnresolvable, fmt.Sprintf("waiting for lesser order pods to be scheduled before scheduling pod: %s", pod.Name))
+func (pl *NetworkSloAware) PreFilter(ctx context.Context, state *framework.CycleState, pod *v1.Pod) (*framework.PreFilterResult, *framework.Status) {
+	if AreLesserOrderPodsScheduled(ctx, pl.handle, pod) {
+		klog.Infof("pod %s ready to be scheduled", pod.Name)
+		return nil, framework.NewStatus(framework.Success, fmt.Sprintf("pod %s ready to be scheduled", pod.Name))
 	}
 
-	klog.Infof("pod: %s ready to be scheduled", pod.Name)
+	klog.Infof("pod %s not ready to be scheduled", pod.Name)
+	return nil, framework.NewStatus(framework.UnschedulableAndUnresolvable, fmt.Sprintf("pod %s not ready to be scheduled", pod.Name))
+}
 
+func (pl *NetworkSloAware) PreFilterExtensions() framework.PreFilterExtensions {
 	return nil
 }
 

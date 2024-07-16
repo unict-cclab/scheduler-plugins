@@ -7,61 +7,72 @@ import (
 	"strconv"
 	"strings"
 
-	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 )
 
-func GetOwnerDeployment(ctx context.Context, handle framework.Handle, pod *v1.Pod) (*appsv1.Deployment, error) {
-	if len(pod.OwnerReferences) == 0 || pod.OwnerReferences[0].Kind != "ReplicaSet" {
-		klog.Infof("no owner replicaSet for pod %s", pod.Name)
-		return nil, fmt.Errorf("no owner replicaSet for pod %s", pod.Name)
+func AreLesserOrderPodsScheduled(ctx context.Context, handle framework.Handle, pod *v1.Pod) bool {
+	namespace := pod.GetNamespace()
+
+	appGroup, ok := pod.GetLabels()["app-group"]
+	if !ok {
+		klog.Infof("error getting app-group label for pod %s", pod.Name)
+		return false
 	}
 
-	replicaSet, err := handle.ClientSet().AppsV1().ReplicaSets(pod.Namespace).Get(ctx, pod.OwnerReferences[0].Name, metav1.GetOptions{})
-	if err != nil {
-		klog.Infof("error in getting pod %s replicaSet", pod.Name)
-		return nil, fmt.Errorf("error in getting pod %s replicaSet", pod.Name)
+	for key, value := range pod.GetLabels() {
+		if strings.HasPrefix(key, "chain-") {
+			index, err := strconv.Atoi(value)
+			if err != nil {
+				klog.Infof("error parsing chain label value for pod %s", pod.Name)
+				return false
+			}
+
+			if index > 0 {
+				labelSelector := metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"app-group": appGroup,
+						key:         strconv.Itoa(index - 1),
+					},
+				}
+				listOptions := metav1.ListOptions{
+					LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
+				}
+				lesserOrderPods, err := handle.ClientSet().CoreV1().Pods(namespace).List(ctx, listOptions)
+				if err != nil {
+					klog.Infof("error getting lesser order pods for pod %s", pod.Name)
+					return false
+				}
+
+				if len(lesserOrderPods.Items) == 0 {
+					return false
+				}
+
+				for _, lesserOrderPod := range lesserOrderPods.Items {
+					if lesserOrderPod.Status.Phase == v1.PodPending {
+						return false
+					}
+				}
+			}
+		}
 	}
 
-	if len(replicaSet.OwnerReferences) == 0 {
-		klog.Infof("no owner deployment for replicaSet %s", pod.Name)
-		return nil, fmt.Errorf("no owner deployment for replicaSet %s", pod.Name)
-	}
-
-	deployment, err := handle.ClientSet().AppsV1().Deployments(replicaSet.Namespace).Get(ctx, replicaSet.OwnerReferences[0].Name, metav1.GetOptions{})
-	if err != nil {
-		klog.Infof("error in getting replicaSet %s deployment", pod.Name)
-		return nil, fmt.Errorf("error in getting replicaSet %s deployment", pod.Name)
-	}
-
-	return deployment, nil
+	return true
 }
 
 func ArePodsNeighbors(ctx context.Context, handle framework.Handle, pod *v1.Pod, peerPod *v1.Pod) bool {
-	deployment, err := GetOwnerDeployment(ctx, handle, pod)
-	if err != nil {
-		klog.Infof("error getting owner deployment for pod %s: %s", pod.Name, err.Error())
-		return false
-	}
-
-	peerDeployment, err := GetOwnerDeployment(ctx, handle, peerPod)
-	if err != nil {
-		klog.Infof("error getting owner deployment for pod %s: %s", pod.Name, err.Error())
-		return false
-	}
-
-	appGroup, ok := deployment.GetLabels()["app-group"]
+	appGroup, ok := pod.GetLabels()["app-group"]
 	if !ok {
-		klog.Infof("error getting app-group label for deployment %s", deployment.Name)
+		klog.Infof("error getting app-group label for pod %s", pod.Name)
 		return false
 	}
 
-	peerAppGroup, ok := peerDeployment.GetLabels()["app-group"]
+	peerAppGroup, ok := peerPod.GetLabels()["app-group"]
 	if !ok {
-		klog.Infof("error getting app-group label for deployment %s", peerDeployment.Name)
+		klog.Infof("error getting app-group label for pod %s", peerPod.Name)
 		return false
 	}
 
@@ -69,18 +80,18 @@ func ArePodsNeighbors(ctx context.Context, handle framework.Handle, pod *v1.Pod,
 		return false
 	}
 
-	for key, value := range deployment.GetLabels() {
+	for key, value := range pod.GetLabels() {
 		if strings.HasPrefix(key, "chain-") {
 			index, err := strconv.ParseFloat(value, 64)
 			if err != nil {
-				klog.Infof("error parsing chain label value for deployment %s", deployment.Name)
+				klog.Infof("error parsing chain label value for pod %s", pod.Name)
 			}
 
-			peerValue, ok := peerDeployment.GetLabels()[key]
+			peerValue, ok := peerPod.GetLabels()[key]
 			if ok {
 				peerIndex, err := strconv.ParseFloat(peerValue, 64)
 				if err != nil {
-					klog.Infof("error parsing chain label value for deployment %s", peerDeployment.Name)
+					klog.Infof("error parsing chain label value for pod %s", peerPod.Name)
 				}
 				if int64(math.Abs(index-peerIndex)) == 1 {
 					klog.Infof("Pods %s and %s are neighbors", pod.Name, peerPod.Name)
@@ -94,28 +105,16 @@ func ArePodsNeighbors(ctx context.Context, handle framework.Handle, pod *v1.Pod,
 }
 
 func GetChainSloSum(ctx context.Context, handle framework.Handle, pod *v1.Pod, peerPod *v1.Pod) (float64, error) {
-	deployment, err := GetOwnerDeployment(ctx, handle, pod)
-	if err != nil {
-		klog.Infof("error getting owner deployment for pod %s: %s", pod.Name, err.Error())
-		return 0.0, fmt.Errorf("error getting owner deployment for pod %s: %s", pod.Name, err.Error())
-	}
-
-	peerDeployment, err := GetOwnerDeployment(ctx, handle, peerPod)
-	if err != nil {
-		klog.Infof("error getting owner deployment for pod %s: %s", pod.Name, err.Error())
-		return 0.0, fmt.Errorf("error getting owner deployment for pod %s: %s", pod.Name, err.Error())
-	}
-
-	appGroup, ok := deployment.GetLabels()["app-group"]
+	appGroup, ok := pod.GetLabels()["app-group"]
 	if !ok {
-		klog.Infof("error getting app-group label for deployment %s", deployment.Name)
-		return 0.0, fmt.Errorf("error getting app-group label for deployment %s", deployment.Name)
+		klog.Infof("error getting app-group label for pod %s", pod.Name)
+		return 0.0, fmt.Errorf("error getting app-group label for pod %s", pod.Name)
 	}
 
-	peerAppGroup, ok := peerDeployment.GetLabels()["app-group"]
+	peerAppGroup, ok := peerPod.GetLabels()["app-group"]
 	if !ok {
-		klog.Infof("error getting app-group label for deployment %s", peerDeployment.Name)
-		return 0.0, fmt.Errorf("error getting app-group label for deployment %s", peerDeployment.Name)
+		klog.Infof("error getting app-group label for pod %s", peerPod.Name)
+		return 0.0, fmt.Errorf("error getting app-group label for pod %s", peerPod.Name)
 	}
 
 	if appGroup != peerAppGroup {
@@ -125,33 +124,33 @@ func GetChainSloSum(ctx context.Context, handle framework.Handle, pod *v1.Pod, p
 
 	var chainSloSum float64
 
-	for key, value := range deployment.GetLabels() {
+	for key, value := range pod.GetLabels() {
 		if strings.HasPrefix(key, "chain-") {
 			index, err := strconv.ParseFloat(value, 64)
 			if err != nil {
-				klog.Infof("error parsing chain label value for deployment %s", deployment.Name)
-				return 0.0, fmt.Errorf("error parsing chain label value for deployment %s", deployment.Name)
+				klog.Infof("error parsing chain label value for pod %s", pod.Name)
+				return 0.0, fmt.Errorf("error parsing chain label value for pod %s", pod.Name)
 			}
 
-			peerValue, ok := peerDeployment.GetLabels()[key]
+			peerValue, ok := peerPod.GetLabels()[key]
 			if ok {
 				peerIndex, err := strconv.ParseFloat(peerValue, 64)
 				if err != nil {
-					klog.Infof("error parsing chain label value for deployment %s", peerDeployment.Name)
+					klog.Infof("error parsing chain label value for pod %s", peerPod.Name)
 				}
 				if int64(math.Abs(index-peerIndex)) == 1 {
-					klog.Infof("Pods %s and %s are neighbors", pod.Name, peerPod.Name)
+					klog.Infof("pods %s and %s are neighbors", pod.Name, peerPod.Name)
 
-					chainSloAnnotation, ok := deployment.GetAnnotations()[key+"-slo"]
+					chainSloAnnotation, ok := pod.GetAnnotations()[key+"-slo"]
 					if !ok {
-						klog.Infof("error getting %s annotation for deployment %s", key+"-slo", deployment.Name)
-						return 0.0, fmt.Errorf("error getting %s annotation for deployment %s", key+"-slo", deployment.Name)
+						klog.Infof("error getting %s annotation for pod %s", key+"-slo", pod.Name)
+						return 0.0, fmt.Errorf("error getting %s annotation for pod %s", key+"-slo", pod.Name)
 					}
 
 					chainSlo, err := strconv.ParseFloat(chainSloAnnotation, 64)
 					if err != nil {
-						klog.Infof("error parsing %s annotation for deployment %s", key+"-slo", deployment.Name)
-						return 0.0, fmt.Errorf("error parsing %s annotation for deployment %s", key+"-slo", deployment.Name)
+						klog.Infof("error parsing %s annotation for pod %s", key+"-slo", pod.Name)
+						return 0.0, fmt.Errorf("error parsing %s annotation for pod %s", key+"-slo", pod.Name)
 					}
 
 					chainSloSum += chainSlo

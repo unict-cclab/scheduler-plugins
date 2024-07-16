@@ -20,10 +20,19 @@ type NetworkSloAware struct {
 	handle framework.Handle
 }
 
+var _ = framework.PreEnqueuePlugin(&NetworkSloAware{})
 var _ = framework.ScorePlugin(&NetworkSloAware{})
 
 func (pl *NetworkSloAware) Name() string {
 	return Name
+}
+
+func (pl *NetworkSloAware) PreEnqueue(ctx context.Context, pod *v1.Pod) *framework.Status {
+	if !AreLesserOrderPodsScheduled(ctx, pl.handle, pod) {
+		return framework.NewStatus(framework.UnschedulableAndUnresolvable, fmt.Sprintf("waiting for lesser order pods to be scheduled before scheduling pod: %s", pod.Name))
+	}
+
+	return nil
 }
 
 func (pl *NetworkSloAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.Pod, nodeName string) (int64, *framework.Status) {

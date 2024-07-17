@@ -87,7 +87,7 @@ func (pl *NetworkSloAware) Score(ctx context.Context, _ *framework.CycleState, p
 				}
 
 				for _, chainSlo := range chainsSlos {
-					score += int64(nodeLatency * 100 / chainSlo)
+					score -= int64(nodeLatency * 100 / chainSlo)
 				}
 			}
 		}

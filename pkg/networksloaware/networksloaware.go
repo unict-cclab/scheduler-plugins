@@ -86,8 +86,13 @@ func (pl *NetworkSloAware) Score(ctx context.Context, _ *framework.CycleState, p
 					return 0, framework.NewStatus(framework.Error, fmt.Sprintf("error getting shared chains slos for pods %s and %s", pod.Name, peerPod.Name))
 				}
 
+				rps, err := GetRequestsPerSecond(ctx, pl.handle, pod, &peerPod)
+				if err != nil {
+					return 0, framework.NewStatus(framework.Error, fmt.Sprintf("error getting requests per second for pods %s and %s", pod.Name, peerPod.Name))
+				}
+
 				for _, chainSlo := range chainsSlos {
-					score -= int64(nodeLatency * 100 / chainSlo)
+					score -= int64(nodeLatency * (rps + 100) / chainSlo)
 				}
 			}
 		}

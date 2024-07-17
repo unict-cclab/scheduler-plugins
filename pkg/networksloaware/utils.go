@@ -162,11 +162,50 @@ func GetSharedChainsSlos(ctx context.Context, handle framework.Handle, pod *v1.P
 	return chainsSlos, nil
 }
 
+func GetRequestsPerSecond(ctx context.Context, handle framework.Handle, pod *v1.Pod, peerPod *v1.Pod) (float64, error) {
+	appGroup, ok := pod.GetLabels()["app-group"]
+	if !ok {
+		klog.Infof("error getting app-group label for pod %s", pod.Name)
+		return 0.0, fmt.Errorf("error getting app-group label for pod %s", pod.Name)
+	}
+
+	peerAppGroup, ok := peerPod.GetLabels()["app-group"]
+	if !ok {
+		klog.Infof("error getting app-group label for pod %s", peerPod.Name)
+		return 0.0, fmt.Errorf("error getting app-group label for pod %s", peerPod.Name)
+	}
+
+	if appGroup != peerAppGroup {
+		klog.Infof("pods %s and %s do not belong to the same app group", pod.Name, peerPod.Name)
+		return 0.0, fmt.Errorf("pods %s and %s do not belong to the same app group", pod.Name, peerPod.Name)
+	}
+
+	peerApp, ok := peerPod.GetLabels()["app"]
+	if !ok {
+		klog.Infof("error getting app label for pod %s", peerPod.Name)
+		return 0.0, fmt.Errorf("error getting app label for pod %s", peerPod.Name)
+	}
+
+	rpsAnnotation, ok := pod.Annotations["rps."+peerApp]
+	if !ok {
+		klog.Infof("\"rps.%s\" annotation not found on pod %s", peerApp, pod.Name)
+		return 0.0, nil
+	}
+
+	rps, err := strconv.ParseFloat(rpsAnnotation, 64)
+	if err != nil {
+		klog.Infof("error parsing \"rps.%s\" annotation of pod %s", peerApp, pod.Name)
+		return 0.0, fmt.Errorf("error parsing \"rps.%s\" annotation of pod %s", peerApp, pod.Name)
+	}
+
+	return rps, nil
+}
+
 func GetNodeLatency(node *v1.Node, peerNode *v1.Node) (float64, error) {
 	latencyAnnotation, ok := node.Annotations["network-latency."+peerNode.Name]
 	if !ok {
 		klog.Infof("\"network-latency.%s\" annotation not found on node %s", peerNode.Name, node.Name)
-		return 0.0, fmt.Errorf("\"network-latency.%s\" annotation not found on node %s", peerNode.Name, node.Name)
+		return 0.0, nil
 	}
 
 	latency, err := strconv.ParseFloat(latencyAnnotation, 64)

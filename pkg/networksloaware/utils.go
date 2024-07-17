@@ -104,32 +104,32 @@ func ArePodsNeighbors(ctx context.Context, handle framework.Handle, pod *v1.Pod,
 	return false
 }
 
-func GetChainSloSum(ctx context.Context, handle framework.Handle, pod *v1.Pod, peerPod *v1.Pod) (float64, error) {
+func GetSharedChainsSlos(ctx context.Context, handle framework.Handle, pod *v1.Pod, peerPod *v1.Pod) ([]float64, error) {
 	appGroup, ok := pod.GetLabels()["app-group"]
 	if !ok {
 		klog.Infof("error getting app-group label for pod %s", pod.Name)
-		return 0.0, fmt.Errorf("error getting app-group label for pod %s", pod.Name)
+		return nil, fmt.Errorf("error getting app-group label for pod %s", pod.Name)
 	}
 
 	peerAppGroup, ok := peerPod.GetLabels()["app-group"]
 	if !ok {
 		klog.Infof("error getting app-group label for pod %s", peerPod.Name)
-		return 0.0, fmt.Errorf("error getting app-group label for pod %s", peerPod.Name)
+		return nil, fmt.Errorf("error getting app-group label for pod %s", peerPod.Name)
 	}
 
 	if appGroup != peerAppGroup {
 		klog.Infof("pods %s and %s do not belong to the same app group", pod.Name, peerPod.Name)
-		return 0.0, fmt.Errorf("pods %s and %s do not belong to the same app group", pod.Name, peerPod.Name)
+		return nil, fmt.Errorf("pods %s and %s do not belong to the same app group", pod.Name, peerPod.Name)
 	}
 
-	var chainSloSum float64
+	var chainsSlos []float64
 
 	for key, value := range pod.GetLabels() {
 		if strings.HasPrefix(key, "chain-") {
 			index, err := strconv.ParseFloat(value, 64)
 			if err != nil {
 				klog.Infof("error parsing chain label value for pod %s", pod.Name)
-				return 0.0, fmt.Errorf("error parsing chain label value for pod %s", pod.Name)
+				return nil, fmt.Errorf("error parsing chain label value for pod %s", pod.Name)
 			}
 
 			peerValue, ok := peerPod.GetLabels()[key]
@@ -144,22 +144,22 @@ func GetChainSloSum(ctx context.Context, handle framework.Handle, pod *v1.Pod, p
 					chainSloAnnotation, ok := pod.GetAnnotations()[key+"-slo"]
 					if !ok {
 						klog.Infof("error getting %s annotation for pod %s", key+"-slo", pod.Name)
-						return 0.0, fmt.Errorf("error getting %s annotation for pod %s", key+"-slo", pod.Name)
+						return nil, fmt.Errorf("error getting %s annotation for pod %s", key+"-slo", pod.Name)
 					}
 
 					chainSlo, err := strconv.ParseFloat(chainSloAnnotation, 64)
 					if err != nil {
 						klog.Infof("error parsing %s annotation for pod %s", key+"-slo", pod.Name)
-						return 0.0, fmt.Errorf("error parsing %s annotation for pod %s", key+"-slo", pod.Name)
+						return nil, fmt.Errorf("error parsing %s annotation for pod %s", key+"-slo", pod.Name)
 					}
 
-					chainSloSum += chainSlo
+					chainsSlos = append(chainsSlos, chainSlo)
 				}
 			}
 		}
 	}
 
-	return chainSloSum, nil
+	return chainsSlos, nil
 }
 
 func GetNodeLatency(node *v1.Node, peerNode *v1.Node) (float64, error) {

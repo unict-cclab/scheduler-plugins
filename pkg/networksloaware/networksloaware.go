@@ -81,11 +81,14 @@ func (pl *NetworkSloAware) Score(ctx context.Context, _ *framework.CycleState, p
 
 		for _, peerPod := range pods.Items {
 			if ArePodsNeighbors(ctx, pl.handle, pod, &peerPod) {
-				chainSloSum, err := GetChainSloSum(ctx, pl.handle, pod, &peerPod)
+				chainsSlos, err := GetSharedChainsSlos(ctx, pl.handle, pod, &peerPod)
 				if err != nil {
-					return 0, framework.NewStatus(framework.Error, fmt.Sprintf("error getting chain slo sum for pods %s and %s", pod.Name, peerPod.Name))
+					return 0, framework.NewStatus(framework.Error, fmt.Sprintf("error getting shared chains slos for pods %s and %s", pod.Name, peerPod.Name))
 				}
-				score -= int64(nodeLatency * 100 / chainSloSum)
+
+				for _, chainSlo := range chainsSlos {
+					score += int64(nodeLatency * 100 / chainSlo)
+				}
 			}
 		}
 	}

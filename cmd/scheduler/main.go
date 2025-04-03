@@ -69,7 +69,7 @@ func main() {
 		app.WithPlugin(loadawareresourcesbalancedallocation.Name, loadawareresourcesbalancedallocation.New),
 		app.WithPlugin(networkaware.Name, networkaware.New),
 		app.WithPlugin(networksloaware.Name, networksloaware.New),
-		app.WithPlugin(GpuAware.Name, GpuAware.New),
+		app.WithPlugin(gpuaware.Name, gpuaware.New),
 	)
 
 	code := cli.Run(command)

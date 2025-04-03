@@ -4,12 +4,11 @@ import (
 	"context"
 	"fmt"
 	"math"
-
+        metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
-	"sigs.k8s.io/scheduler-plugins/pkg/sophos"
 )
 
 const (

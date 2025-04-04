@@ -41,33 +41,34 @@ func (pl *GpuAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 
 	var podGpuRequest int64 = 0
     for _, container := range pod.Spec.Containers {
-        if gpuQuantity, ok := container.Resources.Limits["nvidia.com/gpu.shared"]; ok {
+        if gpuQuantity, ok := container.Resources.Requests["nvidia.com/gpu.shared"]; ok {
             podGpuRequest += gpuQuantity.Value()
         }
     }
-
-	if podGpuRequest == 0 {
-        return int64(framework.MaxNodeScore) / 2, nil
-    }
-
 	var totalGpuRequested int64 = 0
     for _, p := range pods.Items {
         for _, container := range p.Spec.Containers {
-            if gpuQuantity, ok := container.Resources.Limits["nvidia.com/gpu.shared"]; ok {
+            if gpuQuantity, ok := container.Resources.Requests["nvidia.com/gpu.shared"]; ok {
                 totalGpuRequested += gpuQuantity.Value()
             }
         }
     }
 
-    RequestGpu := -(totalGpuRequested + podGpuRequest)
+    RequestGpu := totalGpuRequested + podGpuRequest
 
 	gpuCapacity, ok := node.Node().Status.Capacity["nvidia.com/gpu.shared"]
 	if !ok || gpuCapacity.Value() == 0 {
 		return 0, framework.NewStatus(framework.Error, fmt.Sprintf("node %q has no GPU capacity", nodeName))
 	}
+	if RequestGpu > gpuCapacity.Value() == 0 {
+		return 0, nil
+	}
+	if podGpuRequest == 0 && GpuCapacity == 0{
+		return int64(framework.MaxNodeScore),nil
+	}
 	NormalizedRequestGpu := float64(RequestGpu) / float64(gpuCapacity.Value())
 	score := int64((1 - NormalizedRequestGpu) * float64(framework.MaxNodeScore))
-
+    
 	return score, nil
 }
 

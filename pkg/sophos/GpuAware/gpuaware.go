@@ -60,10 +60,10 @@ func (pl *GpuAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	if !ok || gpuCapacity.Value() == 0 {
 		return 0, framework.NewStatus(framework.Error, fmt.Sprintf("node %q has no GPU capacity", nodeName))
 	}
-	if RequestGpu > gpuCapacity.Value() == 0 {
+	if RequestGpu > gpuCapacity.Value() {
 		return 0, nil
 	}
-	if podGpuRequest == 0 && GpuCapacity == 0{
+	if podGpuRequest == 0 && gpuCapacity.Value() == 0{
 		return int64(framework.MaxNodeScore),nil
 	}
 	NormalizedRequestGpu := float64(RequestGpu) / float64(gpuCapacity.Value())

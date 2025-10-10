@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/scheduler-plugins/pkg/sophos/networkaware"
 	"sigs.k8s.io/scheduler-plugins/pkg/sophos/networksloaware"
         "sigs.k8s.io/scheduler-plugins/pkg/sophos/GpuAware"
+		"sigs.k8s.io/scheduler-plugins/pkg/sophos/ArchitectureAware"
 	"sigs.k8s.io/scheduler-plugins/pkg/sysched"
 	"sigs.k8s.io/scheduler-plugins/pkg/trimaran/loadvariationriskbalancing"
 	"sigs.k8s.io/scheduler-plugins/pkg/trimaran/lowriskovercommitment"
@@ -70,6 +71,7 @@ func main() {
 		app.WithPlugin(networkaware.Name, networkaware.New),
 		app.WithPlugin(networksloaware.Name, networksloaware.New),
 		app.WithPlugin(gpuaware.Name, gpuaware.New),
+		app.WithPlugin(architectureaware.Name, architectureaware.New),
 	)
 
 	code := cli.Run(command)

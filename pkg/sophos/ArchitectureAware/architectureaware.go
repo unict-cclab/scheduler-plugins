@@ -3,6 +3,7 @@ package architectureaware
 import (
 	"context"
 	"fmt"
+	"encoding/json"
         metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -63,17 +64,40 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context,  _ *framework.CycleSta
 		}
 	}
 
+
 	if !updated {
 		klog.Warningf("[ArchitectureAware] No container 'nn' find in the Pod %s/%s", pod.Namespace, pod.Name)
 		return framework.NewStatus(framework.Success, "")
 	}
-	patch := fmt.Sprintf(`{"spec": {"containers": [{"name": "nn", "image": "%s"}]}}`, newImage)
+
+	var containerIndex int = -1
+	for i, c := range pod.Spec.Containers {
+		if c.Name == "nn" {
+			containerIndex = i
+			break
+		}
+	}
+	if containerIndex == -1 {
+		klog.Warningf("[ArchitectureAware] No container 'nn' found in Pod %s/%s", pod.Namespace, pod.Name)
+		return framework.NewStatus(framework.Success, "")
+	}
+
+	patchOps := []map[string]string{
+		{
+			"op":    "replace",
+			"path":  fmt.Sprintf("/spec/containers/%d/image", containerIndex),
+			"value": newImage,
+		},
+	}
+
+	// Serializza la patch
+	patchBytes, _ := json.Marshal(patchOps)
 
 	_, err = client.CoreV1().Pods(pod.Namespace).Patch(
 		ctx,
 		pod.Name,
-		types.StrategicMergePatchType,
-		[]byte(patch),
+		types.JSONPatchType, // 👈 JSON patch, non StrategicMerge
+		patchBytes,
 		metav1.PatchOptions{},
 	)
 	if err != nil {

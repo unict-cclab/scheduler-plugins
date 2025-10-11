@@ -66,16 +66,24 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context,  _ *framework.CycleSta
 		klog.Warningf("[ArchitectureAware] No container 'nn' find in the Pod %s/%s", pod.Namespace, pod.Name)
 		return framework.NewStatus(framework.Success, "")
 	}
+	patch := fmt.Sprintf(`{"spec": {"containers": [{"name": "nn", "image": "%s"}]}}`, newImage)
 
-	_, err = client.CoreV1().Pods(pod.Namespace).Update(ctx, podCopy, metav1.UpdateOptions{})
+	_, err = client.CoreV1().Pods(pod.Namespace).Patch(
+		ctx,
+		pod.Name,
+		types.StrategicMergePatchType,
+		[]byte(patch),
+		metav1.PatchOptions{},
+	)
 	if err != nil {
-		msg := fmt.Sprintf("Failed to update image on Pod %s/%s: %v", pod.Namespace, pod.Name, err)
+		msg := fmt.Sprintf("Failed to patch image on Pod %s/%s: %v", pod.Namespace, pod.Name, err)
 		klog.Error(msg)
 		return framework.NewStatus(framework.Error, msg)
 	}
 
-	klog.Infof("[ArchitectureAware] Pod %s/%s update with image %s on container 'nn'", pod.Namespace, pod.Name, newImage)
+	klog.Infof("[ArchitectureAware] Patched Pod %s/%s with image %s on container 'nn'", pod.Namespace, pod.Name, newImage)
 	return framework.NewStatus(framework.Success, "")
+
 }
 
 func New(_ context.Context, _ runtime.Object, handle framework.Handle) (framework.Plugin, error) {

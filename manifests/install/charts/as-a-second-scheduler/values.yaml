@@ -7,7 +7,8 @@ scheduler:
   image: ghcr.io/unict-cclab/kube-scheduler:sophos-v0.1.5
   replicaCount: 1
   leaderElect: false
-  nodeSelector: {}
+  nodeSelector:
+    kubernetes.io/hostname: k3s-master-01
   affinity: {}
   tolerations: []
 
@@ -15,7 +16,8 @@ controller:
   name: scheduler-plugins-controller
   image: registry.k8s.io/scheduler-plugins/controller:v0.29.7
   replicaCount: 1
-  nodeSelector: {}
+  nodeSelector: 
+    kubernetes.io/hostname: k3s-master-01
   affinity: {}
   tolerations: []
 
@@ -24,7 +26,7 @@ controller:
 
 plugins:
   enabled: ["ArchitectureAware"]
-  disabled: ["PrioritySort"] # only in-tree plugins need to be defined here
+#  disabled: ["PrioritySort"] # only in-tree plugins need to be defined here
 
 # Customize the enabled plugins' config.
 # Refer to the "pluginConfig" section of manifests/<plugin>/scheduler-config.yaml.

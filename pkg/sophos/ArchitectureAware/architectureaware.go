@@ -12,8 +12,8 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/apimachinery/pkg/types"
-	// "sigs.k8s.io/scheduler-plugins/apis/config"
-	config "github.com/unict-cclab/scheduler-plugins/apis/config"
+	"sigs.k8s.io/scheduler-plugins/apis/config"
+	// config "github.com/unict-cclab/scheduler-plugins/apis/config"
 )
 
 const (

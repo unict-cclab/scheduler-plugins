@@ -69,41 +69,27 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context,  _ *framework.CycleSta
     }
 	podCopy := pod.DeepCopy()
 	updated := false
-	for i := range podCopy.Spec.Containers {
-		if podCopy.Spec.Containers[i].Name == "nn" {
-			oldImage := podCopy.Spec.Containers[i].Image
-			 // separa repository e tag
-            repo := oldImage
-            if idx := strings.LastIndex(oldImage, ":"); idx != -1 {
-                repo = oldImage[:idx]
-            }
-
-            newImage := fmt.Sprintf("%s:%s", repo, newTag)
-			podCopy.Spec.Containers[i].Image = newImage
-			klog.Infof("[ArchitectureAware] Change container 'nn' image from %s → %s", oldImage, newImage)
-			updated = true
-			break
-		}
-	}
-
-
-	if !updated {
-		klog.Warningf("[ArchitectureAware] No container 'nn' find in the Pod %s/%s", pod.Namespace, pod.Name)
-		return framework.NewStatus(framework.Success, "")
-	}
-
 	var containerIndex int = -1
-	for i, c := range pod.Spec.Containers {
-		if c.Name == "nn" {
+	var newImage string
+	for i := range pod.Spec.Containers {
+		if pod.Spec.Containers[i].Name == "nn" {
 			containerIndex = i
+			oldImage := pod.Spec.Containers[i].Image
+			repo := oldImage
+			if idx := strings.LastIndex(oldImage, ":"); idx != -1 {
+				repo = oldImage[:idx]
+			}
+			newImage = fmt.Sprintf("%s:%s", repo, newTag)
 			break
 		}
 	}
+
 	if containerIndex == -1 {
 		klog.Warningf("[ArchitectureAware] No container 'nn' found in Pod %s/%s", pod.Namespace, pod.Name)
 		return framework.NewStatus(framework.Success, "")
 	}
 
+	// Patch direttamente sul pod originale usando l'indice corretto
 	patchOps := []map[string]string{
 		{
 			"op":    "replace",

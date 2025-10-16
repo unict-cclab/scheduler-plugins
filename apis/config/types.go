@@ -30,6 +30,8 @@ type ArchitectureAwareArgs struct {
     OrinTag string `json:"orinTag,omitempty"`
     NanoTag string `json:"nanoTag,omitempty"`
 }
+
+
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // CoschedulingArgs defines the parameters for Coscheduling plugin.

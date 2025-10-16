@@ -48,7 +48,7 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context,  _ *framework.CycleSta
 	deviceType := node.Labels["nvidia.com/device-plugin.config"]
 	klog.Infof("[ArchitectureAware] Node %s have label nvidia.com/device-plugin.config=%s", nodeName, deviceType)
 
-	// var newImage string
+	var newImage string
 	var newTag string
 	switch deviceType {
 	case "orin":
@@ -139,15 +139,11 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context,  _ *framework.CycleSta
 // 	return pl, nil
 // }
 func New(_ context.Context, obj runtime.Object, handle framework.Handle) (framework.Plugin, error) {
-    // Crea la struct dei parametri
-    args := &Args{}
+	args, ok := obj.(*config.ArchitectureAwareArgs)
+	if !ok {
+		return nil, fmt.Errorf("want args to be of type ArchitectureAwareArgs, got %T", obj)
+	}
 
-    // Decodifica l'oggetto passato dal scheduler YAML
-    if obj != nil {
-        if err := framework.DecodeInto(obj, args); err != nil {
-            return nil, fmt.Errorf("failed to decode args: %v", err)
-        }
-    }
 
     // Se non sono stati passati, fallback sulle env
     if args.OrinTag == "" {

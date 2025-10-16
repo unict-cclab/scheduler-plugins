@@ -1,0 +1,975 @@
+[33m35941b51[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32msophos[m[33m, [m[1;31morigin/sophos[m[33m)[m add role to patch
+[33m02ca37c1[m update scheduler
+[33m9f5febac[m update architectureaware
+[33m8469e438[m update architectureaware
+[33m4dbdfb9a[m Update deployment scheduler
+[33m33f43fe5[m insert ArchitectureAware in main.go
+[33m6c9a43d9[m Add ArchitectureAware postbind plugin
+[33mec355cae[m[33m ([m[1;33mtag: [m[1;33msophos-v0.1.4[m[33m)[m Correzione score GpuAware
+[33mb1ed491b[m Correzione score GpuAware
+[33m66631c79[m correzione main.go
+[33m454892c3[m Correzione gpuaware.go e aggiunta dell'import di metav1
+[33mf40e3777[m Correzione main.go con il nuovo plugin
+[33m4321f2d4[m Aggiunta GpuAware e inclusione in scheduler/main.go
+[33mac3f274f[m[33m ([m[1;33mtag: [m[1;33msophos-v0.1.2[m[33m)[m Update scheduler Dockerfile
+[33md04f4c85[m Plugin refactoring
+[33m2833641b[m Add sophos plugins
+[33md1b88eb6[m Add release workflow
+[33me1198ac4[m Update Dockerfile
+[33ma0d88261[m[33m ([m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmaster[m[33m)[m Merge pull request #794 from Huang-Wei/bin-scheduler
+[33mae988114[m use /bin/kube-scheduler and /bin/controller as the entrypoints of Dockerfiles
+[33mbcd19def[m Merge pull request #792 from Huang-Wei/bump-deps-1.30.4
+[33m37b7888a[m vendor/
+[33m67300af9[m adapt to new PreScore() interface
+[33m6022686a[m migrate hack/update-codegen.sh
+[33m08ba3613[m upgrade controller-runtime to v0.18.5
+[33mc7dc323b[m go mod files
+[33m98a211b5[m Merge pull request #790 from haorenfsa/master
+[33mbfc48266[m add subtitle for trimaran in plugin list
+[33md67d2c15[m Merge pull request #787 from Huang-Wei/add-back-old-helm-release
+[33m8b53ab7d[m add back previous Helm release entry
+[33m781ea52a[m Merge pull request #786 from Huang-Wei/update-helm-index
+[33mcd8e9f0a[m update helm chart index to include verion 0.29.7
+[33m18005b54[m Merge pull request #784 from Huang-Wei/fix-helm-values
+[33mb4e683e9[m fix image URLs in Helm chart
+[33md16dd2fa[m Merge pull request #782 from Huang-Wei/update-chart
+[33mdd601aaf[m Update helm chart's version to 0.29.7
+[33m61ddb8d8[m Merge pull request #780 from Huang-Wei/update-helm-spec
+[33m39854344[m update Helm's deployment spec
+[33md4204aa1[m Merge pull request #777 from Huang-Wei/fix-build
+[33m832645d4[m Fix an issue that build params are not propagated
+[33m372fafd1[m Merge pull request #775 from Huang-Wei/0.29-doc-update
+[33m7e5b969a[m doc update for v0.29.7
+[33m789c7254[m Merge pull request #774 from Huang-Wei/bump-k8s-v1.29.7
+[33m369b4ff4[m vendor/*
+[33m5c5469d8[m bump k8s deps to v1.29.7
+[33m5fc33cd4[m Merge pull request #773 from Huang-Wei/BUILDPLATFORM
+[33md547ee8e[m speed up build time using platform specific image/arguments
+[33m01153c80[m Merge pull request #772 from Huang-Wei/extend-build-platforms
+[33m7bc14253[m extend build platforms to include linux/s390x,linux/ppc64le
+[33m50277bfa[m Merge pull request #771 from Huang-Wei/reduce-build-time
+[33mf07b9433[m revamp Makefile and build scripts to adapt to 'docker buildx' in local and cloudbuild
+[33m228fb872[m Merge pull request #764 from googs1025/fix_comment
+[33m07595780[m Merge pull request #770 from Huang-Wei/revert-linux/s390x-linux/ppc64le
+[33m774b05d1[m revert building platforms for linux/s390x and linux/ppc64le
+[33m8ac621c8[m Merge pull request #769 from Huang-Wei/use-high-cpu-machine
+[33mbe4c41ca[m use high memory machine to speedup cloudbuild
+[33m1c436c58[m Merge pull request #768 from Huang-Wei/increase-build-timeout
+[33m5d7cd281[m increase the timeout of cloudbuild
+[33m9ae8f214[m Merge pull request #767 from Huang-Wei/fix-buildx-cont
+[33m4f5aa4a7[m fix buildx command in cloudbuild
+[33m3e18408c[m Merge pull request #766 from Huang-Wei/fix-buildx
+[33m11667df5[m Enable buildx in cloudbuild
+[33mdcce6e0f[m Merge pull request #746 from prb112/sp-745
+[33m9c1b3fbe[m Adds support for multi platform support
+[33m2d9af550[m fix EventsToRegister method comment
+[33m7c477adb[m Merge pull request #758 from googs1025/pg_limit
+[33m2c1c0cfe[m Merge pull request #631 from ffromani/handle-attribute-updates
+[33mb5841f40[m Merge pull request #754 from rihib/rihib/issue748
+[33m2dcf73ac[m fix options
+[33mbbadc642[m nrt: attrwatch: default to fixed behavior
+[33m27a9dda0[m nrt: resync NRT data also on attribute change
+[33m02f42a38[m add validation for pggroup
+[33m2667830a[m nrt: cache: use client reader, not full client
+[33m9799e843[m nrt: test: util: create client with watch
+[33m5e29a01c[m nrt: move TM config utils in subpkg
+[33m531a1831[m Merge pull request #753 from googs1025/unit_test_makefile
+[33m0834feb9[m Merge pull request #752 from ffromani/nrt-hostlevel-redo
+[33m13e9bc78[m nrt: move utility code outside plugin.go
+[33me9b8aa4a[m nrt: rewrite resource accounting for scope=container
+[33me3388b95[m nrt: add integration test coverage for the ephemeral storage
+[33m7a8afdf0[m nrt: log: enhance logging in container scope
+[33mebef6ab2[m Convert update-codegen.sh to new codegen
+[33mdf958ed1[m Merge pull request #749 from Huang-Wei/bump-controller-gen
+[33md37ba75c[m add unit-test.sh args customizable
+[33m004e0d9d[m Merge pull request #750 from yeahdongcn/typo
+[33m7ee18442[m generated
+[33m7513ff91[m bump codegen to 0.14.0
+[33m848bd538[m Fix typo: gochache => gocache
+[33m91363037[m Merge pull request #739 from googs1025/replace
+[33m4f3094ed[m Merge pull request #736 from researchapps/fix-anyone-typo
+[33m1214bff5[m Merge pull request #747 from Huang-Wei/revert-codegen
+[33mebde0d55[m auto-generated
+[33mf99766f9[m Revert "generate-internal-groups.sh -> kube_codegen.sh"
+[33m1cbd003c[m replace deprecated method
+[33mab046329[m Merge pull request #742 from jgu17/master
+[33m3ed401ca[m Fix CVE-2023-47108 in go.opentelemetry.io
+[33mcbe0d0a3[m add crd(podgroup, elasticquotas) field (#731)
+[33me72cb4d4[m Merge pull request #738 from jgu17/master
+[33m4a00cfd5[m Add ARG for base image customization and upgrade go version from 1.20 to 1.21
+[33m8d81cec3[m Merge pull request #737 from zwpaper/site-chart
+[33mede36c12[m site: add chart index to site
+[33ma1d81a24[m docs: anyone should be any
+[33m2a7767e4[m Merge pull request #735 from ffromani/nrt-hostlevel-resources
+[33mc48f462c[m nrt: filter: add function to find numa-affine resources
+[33mf7057dac[m nrt: filter: distinguish host-level resources
+[33me556b49b[m Merge pull request #726 from googs1025/master
+[33md9728edc[m Merge pull request #725 from ffromani/klog-contextual-logging
+[33m70981813[m nrt: logr: better integration with framework
+[33m521dd8e7[m Merge pull request #728 from googs1025/ctx_add
+[33mf3cd486f[m pass existing context without using TODO()
+[33mb95c9ba6[m fix code review comment
+[33m39cba308[m fix log print and some nit issue
+[33m51d27b6e[m Merge pull request #710 from ffromani/nrt-klog-to-logr
+[33m045a43d1[m nrt: logr: add support for logr
+[33m8d9a4cd0[m nrt: deps: bump to noderesourcetopology API v0.1.2
+[33m2d203108[m Merge pull request #723 from Huang-Wei/bump-k8s-v1.29
+[33m74cdc735[m adapt to Preemption interface change
+[33m437ac6db[m New() interface change; pkg/scheduler/testing -> scheduler/testing/framework
+[33m99de67d5[m generate-internal-groups.sh -> kube_codegen.sh
+[33mf5867002[m vendor/*
+[33mafcf382b[m go module changes
+[33me2dc31bc[m pkg/scheduler/framework/fake -> pkg/scheduler/testing/framework
+[33mf83d2a0d[m remove v1beta3
+[33m3f841b49[m Merge pull request #719 from Huang-Wei/0.28-doc-update
+[33m471ec7fd[m doc update for v0.28.9
+[33m10a2173f[m Merge pull request #700 from Huang-Wei/coscheduling-perf-fix
+[33m209ed9df[m Merge pull request #716 from Huang-Wei/0.28-doc-update
+[33m60c45cdf[m doc update for v0.28
+[33m074a2223[m Merge pull request #714 from Huang-Wei/CVE-2023-45288
+[33m0cb2c913[m vendor/*
+[33m7bd6d23d[m golang.org/x/net is bumped to v0.23.0 to address CVE-2023-45288
+[33m4775d25b[m Merge pull request #711 from Huang-Wei/bump-v0.28.8
+[33m4d3d41c5[m bump k8s deps to v1.28.8
+[33mbbd3027d[m Merge pull request #697 from mochizuki875/add_scheduling_op_helm
+[33m70c77ce1[m Add scheduling op to helm chart
+[33mcd3e4fb7[m Merge pull request #568 from mvle/sysched-scoring
+[33m4b6ea59c[m Update vendor, go.mod, and go.sum
+[33m588b8ecd[m Add other logic files
+[33m1295000e[m Update API codegen files
+[33m41473cbc[m Update API files
+[33ma49a32ee[m Merge pull request #695 from IsQiao/patch-1
+[33mf70f90c0[m Merge pull request #628 from ichbinblau/kep
+[33me35ce338[m fixup: rename preFilterState to permitState
+[33md16270f9[m Avoid unnecessary requeue operations in coscheduling
+[33mc752c54e[m Merge pull request #699 from Huang-Wei/update-crd-yamls
+[33m2cef1938[m remove manual edit strings from crd manifests
+[33m785db5c8[m Merge pull request #698 from mochizuki875/fix_docs
+[33m5ec5e064[m Fix incorrect pod name
+[33m93c518b7[m Merge pull request #599 from ffromani/nrt-extra-informer
+[33me466bc41[m nrt: cache: add support for dedicated informer
+[33m4c445c72[m Fix highlight in diff code block
+[33m73230f91[m feed the telemetry data thru the API server route.
+[33m6b16a4e5[m KEP v0.1 for disk IO aware scheduler plugin.
+[33md9c3dcc7[m Merge pull request #687 from tu1h/fix_noderesourcestopo_api
+[33mc0a200b5[m Merge pull request #680 from lianghao208/doc_v1beta3
+[33m301f8046[m Merge pull request #692 from zwpaper/master
+[33mab0b214f[m CI: add releasing helm chart
+[33m632e25c4[m doc: doc/manifest update, use v1 as the version of all scheduler config yamls, use MultiPoint to simplify configuring each plugin.
+[33mfafdc9bb[m Update api version and field for noderesourcetopology
+[33m464b3994[m Merge pull request #686 from ffromani/nrt-doc-secondary-scheduler
+[33mb3d5e20b[m Merge pull request #685 from ffromani/nrt-score-partial-data-tests
+[33mdfe8fdea[m nrt: doc: add notes and rationale about deploying
+[33macd5d18f[m nrt: score: add tests for partial NRT data
+[33md906cb81[m nrt: score: extract fake NRT creation
+[33m9f8a4171[m Merge pull request #679 from ffromani/nrt-cache-get-fixes
+[33m12e4ab7d[m nrt: test: use common pseudo-conformance tests for all the impls
+[33m63e08c73[m Merge pull request #670 from Huang-Wei/bump-k8s-v1.28
+[33m5c7c469e[m nrt: cache: test: add common tests for cache impls
+[33maa79c7f0[m nrt: cache: discardreserved: fix return value
+[33ma2ddb166[m nrt: cache: clarify GetCachedNRTCopy API
+[33mffba3d33[m Merge pull request #672 from tenzen-y/remove-podsBind-from-manaifest
+[33m7957ac0e[m Coscheduling: Remove the postBind filter in the KubeSchedulerConfiguration
+[33mb66aa8ab[m Merge pull request #669 from Huang-Wei/0.27-doc-update
+[33mdca7acff[m work around k/k#121630
+[33m4316ba95[m adapt to misc upstream SDK changes
+[33me3484e31[m adatp to framework.ClusterEventWithHint
+[33m3174f725[m /vendor
+[33m1d5bed12[m go mod changes
+[33md1bf6c59[m remove v1beta2 config
+[33m434ab665[m doc update for v0.27
+[33m51aeff68[m Merge pull request #666 from Huang-Wei/bump-k8s-v1.27.8
+[33m0e033786[m vendor/ changes
+[33m8a790d8c[m bump k/k deps to v1.27.8
+[33mfc5b4b29[m Merge pull request #665 from Huang-Wei/elasticquota-migrate-controller-runtime
+[33m28e07362[m refactor main_test.go: install CRDs using envtest
+[33mce51061a[m migrate elalsticquota/capacityscheduling to controller-runtime
+[33m862667ae[m Merge pull request #655 from zwpaper/refactor-ctrl-runtime-capacity
+[33m0b5755d1[m refactor: move scheme initial into init functions in each plugins
+[33md7a2cf4d[m crd: drop noderesourcetopology v1alpha1 in crd
+[33m76b044c2[m vendor: delete generated nrt client
+[33m4f943be4[m tests: migrate nrt tests to ctrl runtime
+[33m6ed4997b[m controller: migrate nrt to ctrl runtime
+[33m0ae911e6[m Merge pull request #663 from Huang-Wei/bump-k8s-v1.27.7
+[33me77b38d8[m vendor/ changes
+[33m7251a2f3[m go mod changes
+[33m777f67da[m Merge pull request #654 from kerthcet/cleanup/remove-warning
+[33mca5d17ba[m Merge pull request #522 from zwpaper/refactor-ctrl-runtime
+[33m7098da73[m test: migrate networkaware testing to ctrl runtime
+[33m9096af88[m refactor: migrate appgroup and net topo client to ctrl runtime
+[33mfae4102f[m Add namespace index to pod informer
+[33m48f67e29[m Fix lint error
+[33m40c0fee3[m Merge pull request #652 from Huang-Wei/coscheduling-migrate-controller-runtime
+[33mc0e0cbfe[m fixup: pass in context if possible
+[33m2242c3f0[m refactor coscheduling to use controller-runtime client
+[33m5eb736d4[m Merge pull request #646 from philsphicas/master
+[33mcd54de85[m nrt: fix handling of ephemeral-storage requests
+[33m7a5b8557[m Merge pull request #639 from zwpaper/bump-1.27.6
+[33m03d59af2[m deps: bump kube deps to 1.27.6 and add capacity integration test back
+[33m57fb0f7a[m Merge pull request #638 from maoyangLiu/master
+[33mce883bf4[m fix outdate url
+[33mff23d03c[m Merge pull request #634 from zwpaper/master
+[33m2404f987[m docs: update 1.25 target kubernetes version to 1.25.12
+[33mbe49ad93[m Merge pull request #612 from knarayan/trimaran1
+[33ma3eb6cdd[m Merge pull request #630 from zwpaper/master
+[33m121dcb76[m rename hugo config to config.yaml
+[33md0f0b271[m Merge pull request #627 from 283713406/find-correct-combination
+[33mb5d4ee32[m Update least_numa.go
+[33m23e7ea89[m Find correct combination with given NUMA node ID
+[33m5fec391c[m Merge pull request #623 from PiotrProkop/findCorrectNUMANodes
+[33m0519d055[m Find correct cost associated with given NUMA node ID
+[33m2b59cf7f[m Trimaran minor bug fixes and adding test cases
+[33m6df71a42[m Merge pull request #616 from zwpaper/master
+[33m17227d3e[m doc: skip toc check for site
+[33m9aa35c5a[m site: init hugo site by docs
+[33m84f66b8c[m Merge pull request #611 from zwpaper/master
+[33ma3304bd6[m build: bump builder image to go 1.20
+[33mefddd13f[m Merge pull request #608 from Huang-Wei/bump-k8s-1.27
+[33m32aa0388[m Merge pull request #610 from zwpaper/master
+[33mc704ab05[m Revert me once k/k~119769 is available in v1.27.5
+[33m469dd8e8[m Merge pull request #609 from chansuke/hotfix/fix-404-link
+[33m9fd54c38[m test: fix channel leak in event broadcaster
+[33mf0e2379a[m fix 404 link of `Kubeadam`
+[33m2b09fb68[m test: fix: add status sub resource to fake clients (#1)
+[33m339ef513[m [WIP] adapt to controller-runtime's SDK change
+[33maf973ed1[m vendor/ for controller-runtime version bumping
+[33me72c2fd2[m bump controller-runtime to v0.15.0
+[33ma7923914[m adapt to SDK changes in k8s 1.27
+[33m778179c3[m vendor/
+[33mbbb7516e[m go module changes
+[33m899d0e1c[m Merge pull request #604 from Huang-Wei/doc/1.26-update
+[33mfa2f7f07[m Documents update for release v0.26.7
+[33mfb9bf413[m Merge pull request #559 from KunWuLuan/master
+[33md827483e[m Merge pull request #602 from hjiajing/control-plane
+[33mc15c23cb[m Change Node Role to control-plane in Developer Guide
+[33m0ef09b55[m Merge pull request #601 from PiotrProkop/v1.26
+[33m4afb5ee8[m Bump kubernetes deps to 0.26.7
+[33ma0bf0903[m update generated code
+[33mdbad1a1a[m add podGroup backoff time for coscheduling
+[33m6ef6f63a[m Coscheduling: remove podgroup.scheduled (#574)
+[33m582a1f35[m Merge pull request #587 from jpedro1992/files
+[33m4c5e546e[m Merge pull request #412 from atantawi/trimaran-3
+[33ma3b1a33e[m LowRiskOverCommitment: add core logic
+[33m0b1cd9c4[m LowRiskOverCommitment: vendor updates
+[33m1898bbc4[m LowRiskOverCommitment: API changes
+[33mcf88800d[m Merge pull request #596 from testwill/pkg-import
+[33m96fcf6df[m chore: pkg imported more than once
+[33m89df6757[m Update load-watcher libraries for Trimaran plugins (#588)
+[33mcbf29797[m Merge pull request #590 from ffromani/resync-exclusive-resources
+[33mf5d71005[m chore: nrt: test: rewrite TestFingerprintFromNRT
+[33m5360937a[m nrt: overreserve: use pfp compute method from NRT
+[33m30100f99[m nrt: overreserve: add and use `podData` struct
+[33mabb5beca[m nrt: overreserve: refine foreign pods detection
+[33m7c623cec[m nrt: overreserve: add the resourcerequests package
+[33ma37bd0e8[m chore: nrt: move podLister instantiation on InformerFromHandle
+[33m5af1783d[m Merge pull request #591 from PiotrProkop/deflake-nrt-int-tests
+[33mff643a19[m Increase timeout in noderesourcetopology_cache_test to make sure pod will be rescheduled at least once, to validate DiscardReservedNodes cache works.
+[33m7ae6d3f4[m Merge pull request #576 from ffromani/nrt-integ-test-deflake
+[33m6697aa5d[m update files for networkAware plugins
+[33m0ab88ad4[m Merge pull request #589 from ffromani/nrt-improve-debuggability
+[33m76b60f9d[m nrt: bump and consume podfingerprint v0.2.2
+[33m2ee8ffcc[m deps update
+[33m4b367bc2[m Merge pull request #585 from maoyangLiu/master
+[33mf8dd43c0[m fix typo mistake
+[33m2577aabf[m nrt: least_numa: fix log format
+[33ma3f93ab8[m test: integration: nrt: use unique pod names
+[33mc35e9291[m test: integration: nrt: dump logs on failure
+[33m16524017[m test: better formatting when dumping objects
+[33m370f45db[m test: integration: nrt: fix misleading log
+[33m90214df4[m nodetopologymatch: test: use attributes, not policy
+[33m33fe0eb0[m Merge pull request #500 from PiotrProkop/add-numa-distance
+[33md89891ae[m Add integration tests for considering Zone Costs with LeastNUMA ScoringStrategy
+[33m7865ae48[m Consider zone distance when using LeastNUMANodes scoringStrategy
+[33m36c9cdc3[m Add Costs field to NUMANode struct, which represents distance between NUMA domains
+[33mf8a1d658[m Merge pull request #580 from ffromani/nrt-minimize-list
+[33m376e1d98[m nrt: overreserve: minimize the pod listings
+[33m9701eb84[m Merge pull request #570 from kd7lxl/scheduler-name
+[33m67962d70[m chart: fix service account name
+[33m1a675473[m Merge pull request #572 from zwpaper/master
+[33me70dedf0[m Merge pull request #569 from czybjtu/feat_del_options
+[33m91222b54[m Create bug-report template in GitHub form
+[33mfc0b16b8[m Merge pull request #549 from Gekko0114/integration-test
+[33mad751e37[m Coscheduling: integration-test for PodGroup status
+[33mac60529f[m Merge pull request #544 from Gekko0114/unit-test
+[33m0383bfde[m Delete Useless options in controller
+[33ma5dbff91[m Merge pull request #565 from yanggangtony/fix-wrong-etcd-install
+[33mb690eab3[m fix reviewed comments
+[33me530102f[m ElasticQuota: add unit test for PostFilter & PodEligibleToPreemptOthers
+[33me4d44002[m fix etcd install hint info.
+[33maeb7ff27[m Merge pull request #566 from yanggangtony/clean-error-package
+[33m462a2285[m Delete redundance package k8s.io/apimachinery/pkg/api/errors
+[33m549c61d6[m Merge pull request #527 from czybjtu/feat_elasticquota_ctrl
+[33m55c0bb95[m Merge pull request #558 from PiotrProkop/nodelocking-integration-tests
+[33m84a29f34[m Add integration tests for DiscardReservedNodes NRT cache
+[33mc5f26984[m feat: migrate elasticquota controller to ctrl runtime
+[33mab6c864e[m Merge pull request #557 from ffromani/nrt-indexer-to-lister
+[33m8aab888d[m nrt: overreserve: drop custom indexer, use lister
+[33m527cec2e[m Init DiscardReserved cache for NodeResourceTopology plugin when DiscardReservedNodes option is true
+[33m1631b422[m Merge pull request #555 from tenzen-y/change-image-version
+[33m462baf8c[m Merge pull request #554 from czybjtu/cleanup_postbind
+[33m28254092[m Upgrade the controller image version of the all-in-one.yaml
+[33md6402566[m Cleanup PostBind in coscheduling
+[33m2ea5a971[m Merge pull request #553 from zwpaper/master
+[33m6ee57f58[m Merge pull request #550 from ffromani/nrt-bump-deps
+[33m69b95c68[m Merge pull request #547 from ffromani/nrt-fix-messages
+[33m038350cd[m build: fallback version to dev version based on date if no tags found
+[33me5a5dbd1[m Merge pull request #551 from Gekko0114/Makefile_args
+[33mdadd0313[m Merge pull request #545 from Gekko0114/update_doc
+[33m09969dc3[m Add integration test args to Makefile
+[33m2d27567a[m doc: update ElasticQuota's max value
+[33ma6f5ea4e[m Merge pull request #504 from PiotrProkop/nrt-nodelocking
+[33m7882af70[m Add new NRT cache type called DiscardReserved which discards nodes that already have pods reserved for them by NRT plugin
+[33m3e5f416a[m Add new NRT config option called DiscardReservedNodes
+[33mcbf9da47[m nrt: filter: enable to coalesce log filter reason
+[33mc7347b5b[m nrt: deps: use noderesourcetopology API alpha1v2 helpers
+[33m7609fea1[m nrt: deps: bump to podfingerprint v0.2.0
+[33m726759a9[m Merge pull request #548 from zwpaper/master
+[33ma7426b53[m bump k8s deps to v1.26.3
+[33mee309ae8[m Make NRT plugin implement PostBind Extension
+[33m93d7c928[m Merge pull request #529 from Huang-Wei/update-owners
+[33m7da686c0[m Merge pull request #489 from PiotrProkop/bump-k8s-v1.26
+[33m10651ad8[m adapt to k/k interface changes in 0.26.2
+[33m13f34f23[m Merge pull request #541 from Huang-Wei/doc/1.25-update
+[33m94f6dd89[m Documents update for release v0.25.7
+[33m679a09e8[m bump k8s dep to v1.26.2
+[33m3d7104ed[m Merge pull request #539 from Huang-Wei/ready-to-cut-0.25.7
+[33mbc9480d3[m `vendor/` changes
+[33m4e22d0ae[m update k8s deps to v1.25.7
+[33m575ef999[m Merge pull request #532 from jpedro1992/doc
+[33m733b4c03[m Merge pull request #534 from Gekko0114/unit-test
+[33m91ae1497[m Merge pull request #533 from czybjtu/doc_helm_charts
+[33mded7f5c4[m Merge pull request #538 from xmudrii/registry-k8s-io
+[33mf8be2421[m Replace k8s.gcr.io with registry.k8s.io
+[33m8c4dc24e[m ElasticQuota: add unit test
+[33m2c8cd7d3[m doc: using --namespace option when installed by helm
+[33mc0345e5d[m Merge pull request #535 from Gekko0114/fix_doc
+[33md1cfd8a8[m fix: update develop.md
+[33m861393b9[m doc.go modifications
+[33m95751be8[m Merge pull request #521 from czybjtu/feat_podgroup_label
+[33mc6c82afe[m Merge pull request #530 from Huang-Wei/fix-build-typo
+[33m0f002f45[m Fix an issue arm64 image is not built properly
+[33ma54c4120[m Merge pull request #519 from zwpaper/chart-fix-ns
+[33m9d31e08b[m declutter OWNERS
+[33m72d7f2da[m Merge pull request #511 from evgkrsk/fix-scheduler-metrics
+[33m07e4f68d[m Merge pull request #499 from Fish-pro/chore/staticcheck
+[33m69551342[m Merge pull request #517 from zwpaper/fix-chart-crds
+[33m80be4a66[m Merge pull request #488 from ffromani/config-attributes
+[33m16df00ab[m Merge pull request #512 from PiotrProkop/nrt-add-validation
+[33m9d8e6b19[m Merge pull request #528 from jpedro1992/api
+[33mbd2a5bc9[m api modifications
+[33m23e980c0[m feat: update PodGroup label key
+[33m224a8322[m Merge pull request #523 from Gekko0114/helm
+[33m440fd4e8[m Merge pull request #526 from Huang-Wei/break/x-k8s.io
+[33mce702ec3[m CapacityScheduling: Fix default values for Max/Min in ElasticQuota (#520)
+[33medf60d51[m nrt: doc: update the compatibility matrix
+[33m9c0e02b3[m nrt: doc: document the new attributes format
+[33maff6bdd9[m nrt: use the new config code
+[33m9b11ab69[m nrt: generalize topology manager config options
+[33m25ad6326[m cleanup: remove metav1.TypeMeta when composing CR objects
+[33m0fb11f8f[m codegen
+[33me451cdd4[m relink CRD yamls
+[33md9229f68[m manual changes
+[33mdf16b76a[m add IfNotPresent in helmchart's scheduler image
+[33mfc9d2155[m deps: update podfingerprint package
+[33mae181693[m nrt: api: v1alpha1 -> v1alpha2
+[33m3cb0fd6c[m nrt: manifests: update to NRT API v1alpha2 (v0.1.0)
+[33mb167be58[m nrt: update to NRT API v1alpha2 (v0.1.0)
+[33mff51049a[m nrt: rename scoreStrategy type
+[33mcbc925a6[m nrt: split logging helpers
+[33m67db19a7[m nrt: split object creation helpers
+[33m56e2398e[m feat: migrate podGroup controller to ctrl runtime (#506)
+[33ma97fef7c[m chart: use release.namespace to specify target ns
+[33m1091f0ee[m install: move crds folder to chart root folder
+[33m69a1e31e[m Merge pull request #514 from zwpaper/build/local-arm-image
+[33m080f4ca5[m build: add script to build images and used in makefile
+[33ma7ec3169[m Merge pull request #509 from Gekko0114/elasticquota-min-max
+[33me5ada5c0[m Add missed ./vendor/ changes
+[33m989fa3a9[m Merge pull request #497 from Fish-pro/fix/dockerfile
+[33mf08caa2f[m Merge pull request #510 from Gekko0114/fix-doc-typo
+[33m5a9f02af[m reflect review comment
+[33m7775051b[m Introduce pluginargs validation for NodeResourceTopologyMatch plugin
+[33maa7006c9[m Get back missed scheduler metrics (#501)
+[33mdb724de9[m update outdated doc
+[33m7549cb85[m fix usedOver func and add unit test
+[33mb86321ab[m Merge pull request #498 from Fish-pro/chore/errorlint
+[33mb7c63552[m Merge pull request #495 from BinacsLee/binacs/fix-math-rendering
+[33m98cdc610[m Merge pull request #476 from jpedro1992/configs
+[33m658ed84e[m networkAware update configs
+[33m5020c0fd[m Merge pull request #502 from PiotrProkop/nrt-add-com-matrix
+[33mffdc002a[m Add compatibility matrix for NRT plugin
+[33mf996e5ca[m Merge pull request #481 from zwpaper/master
+[33m9a61b636[m Don't use `nil` as the context argument
+[33m81c3d98a[m Merge pull request #496 from Fish-pro/chore/unparam1
+[33m63f191e5[m Merge pull request #491 from Fish-pro/chore/gosimple
+[33m1147fddc[m fix the post-scheduler-plugins-push-images error
+[33macc9296b[m Optimized error formatting and usestdlibvars
+[33m03e7c159[m Clean up missed nil error return definitions and judgments
+[33mf477c232[m Remove unnecessary functions and optimize judgments
+[33mca2ca69a[m Merge pull request #494 from Fish-pro/chore/unconvert
+[33m6d1f5aa6[m Merge pull request #493 from Fish-pro/chore/unparam
+[33m01ec2100[m Merge pull request #492 from Fish-pro/chore/unused
+[33m7b1d5d46[m fix: math rendering in dark mode
+[33mfb496fd7[m Clean up unnecessary convert
+[33m07aacd3d[m Clean up excess empty error returns from the function
+[33md169bd69[m Clean up unused variables and functions
+[33mf899c84b[m Merge pull request #490 from BinacsLee/binacs/ensure-type-implements-interface
+[33m69e3addc[m ensure plugins implement the interface
+[33m5d4b5e29[m Merge pull request #484 from PiotrProkop/numa-aware-scoring-consider-distance
+[33me850cb46[m Merge pull request #487 from PiotrProkop/add-readme
+[33m85824d48[m Update noderesourcetopology README.md with information about scoringStrategies
+[33mba049165[m noderesourcetopologies: address pending minor cleanups (#483)
+[33mf303398b[m Update NUMA nodes scoring KEP to consider zone distance when scoring
+[33mfa0a3f0b[m add gen group back to gen clientset
+[33m056fa7df[m Merge pull request #474 from PiotrProkop/least-numa-scoring-strategy
+[33mf6f5a92a[m Merge pull request #482 from Huang-Wei/goreportcard
+[33m38f2e1d2[m Add goreportcard and license badges to README
+[33m33ecdc35[m Add integration tests for LeastNUMANodes ScoringStrategyType
+[33m113dde16[m Implement leastNUMAContainerScopeScore and leastNUMAPodScopeScore scoring functions.
+[33m45ed724f[m Split TopologyMatch handlers into scoring handlers and filter handlers.
+[33mfed06a0c[m Add LeastNUMANodes ScoringStrategyType
+[33m2502825c[m Merge pull request #478 from Fish-pro/fix/statement
+[33mdc7b2022[m Merge pull request #479 from lianghao208/crd_annotation
+[33mf5e63d29[m feat: upgrade controller-gen tool and remove hacking logic in hack/verify-crdgen.sh
+[33m822c4fe3[m Merge pull request #477 from tenzen-y/allow-to-access-subresources
+[33m5ff47599[m Optimize partial descriptions in the document
+[33m1d725f57[m Upgrade github.com/k8stopologyawareschedwg/noderesourcetopology-api to `v0.0.13`
+[33mb8fae8fc[m upgrade gonum package to use gonum.org/v1/gonum/stat/combin.Combinations
+[33md502f683[m Fix docs for installation
+[33m742cb189[m Replace the deprecated serviceAccount field with serviceAccountName
+[33mf1d710a9[m Allow all verbs for podgroup/status and elasticquotas/status
+[33mc751e250[m Merge pull request #466 from Huang-Wei/bump-k8s-v1.25
+[33m610e2314[m Merge pull request #454 from PiotrProkop/numa-score-plugin-kep
+[33m7c7ea592[m Merge pull request #471 from KunWuLuan/update-charts
+[33m6b2fcc5f[m Add LeastNUMANodes ScoringStrategy for NodeResourceTopologyMatch plugin KEP
+[33m4a2c182c[m update rbac to allow all verbs for podgroups/status
+[33m2f286c3f[m Merge pull request #470 from my-git9/update/controller
+[33mf74587f8[m update the controller image in all-in-one.yaml
+[33m15e84849[m Merge pull request #455 from fromanirh/nrt-reserve-cache-integ-tests
+[33m5fc85af6[m nrt: cache: bootstrap resync integration tests
+[33m9e03cc33[m Merge pull request #469 from fromanirh/gofmt-1.19
+[33me0ccf0bc[m Merge pull request #463 from Huang-Wei/doc/0.24.9-update
+[33ma8cc83da[m cleanup: gofmt: mechanical changes for gofmt 1.19
+[33m15b8bb51[m fixup: gofmt udpate
+[33mcde3d9c9[m add hack/verify-gomod.sh to check Go mod files
+[33md9ca3949[m add scheduler config v1
+[33m31b4ba49[m adapt to k/k interface changes
+[33m85eefe4b[m bump k8s dep to v1.25.5
+[33m9468afc1[m Merge pull request #468 from my-git9/cleanup/ioutil
+[33ma2736f18[m cleanup: remove ioutil for new go version
+[33m1e516cc5[m Add scripts to verify TOC of all md files except for pkg/*
+[33mb995a7b1[m update README and install doc
+[33m202612c4[m Helm chart update
+[33ma64627b6[m Merge pull request #459 from Huang-Wei/feat/bump-controller-gen
+[33mb29862dc[m fixup: add // +kubebuilder:subresource:status to types scheduler-plugin owns
+[33m8c85ceeb[m bump controller-gen to v0.9.2
+[33m4f56158a[m Merge pull request #460 from jpedro1992/integration
+[33m670b1967[m topologysort integrationtest update
+[33m07d63279[m Merge pull request #439 from fromanirh/nrt-reserve-impl-enh
+[33m53910884[m noderesourcetopology: promote to beta
+[33m1b6d761e[m nrt: cache: reserve: detect foreign pods
+[33ma4d42b75[m Merge pull request #458 from Huang-Wei/pre-release/bump-k8s-patch
+[33m6df0b5e4[m update the k8s patch version to v1.24.9
+[33m28db4449[m nrt: docs: document reserve, new parameter
+[33m23e54355[m nrt: cache: indexer: track updates
+[33mc73e1407[m nrt: cache: use podfingerprint tracing
+[33m809051cd[m nrt: manifests: narrow down RBAC permissions
+[33m47d369c5[m Merge pull request #432 from jpedro1992/development
+[33m1dee9e9e[m Merge pull request #437 from fromanirh/nrt-reserve-impl
+[33mf6a04c4d[m nrt: cache: reserve: add basic integration tests
+[33m698586bb[m test: integrations: nrt: extract helpers
+[33m1a26ce86[m nrt: reserve: track reserved but unbounded pods
+[33m0f4ed7a9[m  nrt: reserve: add cache implementation
+[33m9a19ddeb[m networkAware plugins
+[33m6f8ff080[m add sysched design KEP (#399)
+[33m42e6b045[m nrt: reserve: rename interface for clarity
+[33m210b0854[m nrt: reserve: introduce indexer utility
+[33m0641dacc[m nrt: reserve: clean up code layout
+[33md4cb92ac[m nrt: logKey -> logID
+[33md0c813dc[m Merge pull request #315 from fromanirh/nrt-reserve
+[33ma30d2246[m nrt: reserve: add cache and reserve plugin
+[33m755cc11e[m nrt: reserve: docs: add design document
+[33m6022d602[m nrt: api: add new parameter
+[33me9196cd1[m nrt: add the stringify package
+[33m66dabd41[m Merge pull request #438 from Huang-Wei/enhance-codegen
+[33mbe4d14bd[m Move manual conversion bits out of zz_generated*.go
+[33mec2be5b3[m Merge pull request #434 from 0xff-dev/master
+[33m07c80b2b[m fix: repeat field description
+[33m81fb4607[m Merge pull request #425 from swatisehgal/handle-pods-with-devices
+[33m9262e4e6[m noderesourcetopology: Addtional tests
+[33m2cdf195d[m noderesourcetopology: refine best-effort pod early exit logic
+[33md831125a[m Merge pull request #421 from lianghao208/pluginconfig
+[33mcb9fd2cd[m enhancement: support customizing pluginConfig
+[33m03237360[m Merge pull request #418 from atantawi/testing
+[33m276f0ee9[m address flaky test in TestLoadVariationRiskBalancingPlugin
+[33m887fd5ea[m updated docs for v0.23.10 release (#414)
+[33m8091b659[m LoadVariationRiskBalancing: enhanced integration test (#401)
+[33m69510604[m Trimaran: Restructure for ease of adding trimaran plugins (#403)
+[33m75455be0[m Merge pull request #409 from yibozhuang/update-1.24
+[33md2195e85[m Vendor updates
+[33ma5dfe95b[m Bump k8s deps to v1.24.3
+[33mcf2098ed[m Merge pull request #408 from yibozhuang/coscheduling-refactor
+[33mb4e164f9[m coscheduling: removing DeniedPGExpirationTimeSeconds plugin args
+[33maae3a538[m coscheduling: remove lastDeniedPG cache and lastDeniedPGExpirationTime
+[33mb082ccec[m Merge pull request #407 from Huang-Wei/update-1.23
+[33m62be1a3f[m use x.y as the version to refer to kubebuilder-tools
+[33mc452dc8c[m bump k8s deps to v1.23.9
+[33m6aadda4e[m Merge pull request #377 from Tal-or/nrt_integration_test_filter_plugin
+[33m9292ebbf[m nrt: return error if NRT object alreay exists
+[33m64aca7c9[m nrt: integration-tests: change pod name to const
+[33mb86cfe93[m nrt: integration-tests: adding scope=container tests
+[33mff336e50[m nrt: use fluent API MakeNRT helper function
+[33m17cd7c7d[m nrt: add integration-tests
+[33me0f06456[m Added Readme for helm (#383)
+[33m843d4737[m Merge pull request #395 from KohlsTechnology/bump-alpine-version
+[33m8f17e80d[m Merge pull request #372 from fromanirh/nrt-ext-resources
+[33m9af9a8f2[m Update From Alpine 3.12 to 3.16
+[33m1550aa84[m Merge pull request #393 from KohlsTechnology/bump-go-version
+[33m14ae4de4[m nrt: fix handling of resources w/o NUMA affinity
+[33md01914b1[m nrt: filter: add testcase for non-NUMA affine devs
+[33m6c203021[m Bump To Go 1.17.11
+[33mdf4395d4[m Merge pull request #392 from KohlsTechnology/add-vendor-dir
+[33m54bd848c[m Merge pull request #389 from yuanchen8911/master
+[33mae29d54c[m Fix typos and grammar glitches in coscheduling comments
+[33m38b9b384[m Do not run make target update-vendor automatically
+[33m9ccdd2b2[m Add vendor Directory
+[33m990939b8[m Merge pull request #371 from Tal-or/fix_container_scope
+[33m1f730cff[m Merge pull request #390 from yuanchen8911/coscheduling-fix
+[33m1c0f11fd[m nrt: add unit-tests
+[33m7aa974d1[m nrt: refactor unit-tests
+[33mf8bd93a3[m nrt: document tests
+[33m6db9314d[m nrt: fix filter plugin resource alignment when scope=container
+[33m5f2a45c2[m Replace hard coded time duration with config param in coscheduling
+[33m2d11fb69[m nrt unit test for an extended resource
+[33m9f31d234[m noderesourcetopology: quicker and simpler fail logic for filter when dealing with node-level resources (#373)
+[33m9a166db5[m fix bugs of score calculation formula in TargetLoadPacking Plugin (#384)
+[33mbe08d87a[m Explain a downside of running multiple schedulers (#382)
+[33m84d3e791[m Merge pull request #385 from Huang-Wei/minor-fix-pg
+[33md831b52f[m Merge pull request #381 from zhiyxu/master
+[33ma4fa98c3[m fix: logical error(#380)
+[33me23c728b[m Minor fix for coscheduling plugin's PostBind logic
+[33m57499a63[m Merge pull request #378 from SataQiu/log-flush-bug
+[33mb73694f2[m scheduler: refactor command to use the new component-base cli framework
+[33m7a6dcdc9[m Merge pull request #359 from Tal-or/nrt-score-enhance-logs
+[33mde1fc3ce[m noderesourcetopology: revamp the score logging
+[33med58d19b[m Merge pull request #370 from Huang-Wei/avoid-preemption-coscheduling
+[33me14b022a[m Return framework.UnschedulableAndUnresolvable in coscheduling#PreFilter
+[33mc2d11173[m Merge pull request #337 from sanposhiho/define-purpose-scheduler-plugins
+[33mea2bc18a[m Merge pull request #354 from fromanirh/nrt-filter-enhance-logs
+[33m2f5c2b11[m nrt: log: revamp the filter logging
+[33m1c90b0d3[m noderesourcetopology: add more tests and internal cleanups (#356)
+[33m2fd5ce7d[m Merge pull request #360 from NoicFank/master
+[33m5e032f4c[m bugfix about update occupied in podGroup status
+[33m277b6bde[m Merge pull request #340 from helayoty/controller-runtime-apis
+[33mb5ea0f1f[m Migrate apis and controller to controller-runtime
+[33m2b343907[m implement strict alignment check for the noderesourcetopology filter plugin (#347)
+[33m4cbdc594[m Merge pull request #341 from wangchen615/master
+[33m4a78c35c[m Added targetLoadPackingConfigWithPrometheusArgsFile to test metricProvider args with insecureSkipVerify field
+[33mfe3e07e6[m Added UT for InsecureSkipVerify field in MetricProvider
+[33mea5c0016[m manually added back the generated code changes
+[33m5bed368b[m Update the loadwatcher library to the latest release for trimaran plugins
+[33m043b9b98[m Merge pull request #344 from yibozhuang/polish-integration-tests
+[33m8ddf60bb[m test: polish integration tests to use envtest
+[33m9ed1891a[m Merge pull request #338 from Huang-Wei/Dockerfile-go-1.17
+[33mdb0bdfa0[m Merge pull request #335 from sanposhiho/remove-non-needed-doc
+[33md3d38fd2[m Move doc/release-guide.md to RELEASE.md
+[33md2579019[m bump go version to 1.17 in Dockerfiles
+[33m2176f751[m add the doc about the purpose of the repo to be more clearly
+[33mc29ba601[m Merge pull request #334 from Huang-Wei/bump-1.23
+[33m9cf4c9dc[m fixup: address comments
+[33mb85f58d8[m Bump k8s deps to 1.23.3
+[33m22226fcc[m Merge pull request #336 from sanposhiho/build-tag-go-117
+[33mc040bdbb[m Add go:build directive in tools.go
+[33md871a7e9[m Merge pull request #333 from Huang-Wei/pr-template
+[33mf9e95d64[m Add a simple Pull Request template
+[33m55184708[m Merge pull request #332 from Huang-Wei/doc-update-0.22.6
+[33m14717813[m update the documents to adapt to 0.22.6
+[33m4bd89736[m Merge pull request #326 from helayoty/improve-helm
+[33m8d3dff99[m enhance the helm chart implementation to deploy multi plugins
+[33md4adbb91[m Merge pull request #329 from Huang-Wei/miss-capacityscheduling-test
+[33me95c8b86[m missing capacitySchedulingConfig config test
+[33m844e0d4e[m Merge pull request #328 from Huang-Wei/bump-1.22.6
+[33mf7a6a60e[m bump k8s deps to 1.22.6
+[33m4ef22fd1[m Merge pull request #312 from Garrybest/pr_numapodfilter
+[33m6fa65382[m Merge pull request #282 from jpedro1992/kep
+[33ma8e152fa[m KEP v0.1 for network-aware framework
+[33mba43e690[m Merge pull request #319 from Huang-Wei/rename-ScoringStrategyType
+[33m3a31d4a7[m Merge pull request #291 from swatisehgal/nrt-scheduler-plugin-update
+[33m4fe60851[m NodeResourceTopology scheduler plugin cleanup
+[33m11637ed6[m Merge pull request #317 from Huang-Wei/reg-cr-event
+[33mb61deb05[m register custom resource events for efficient pod enqueuing
+[33mac5c8be9[m Merge pull request #323 from denkensk/move-podgroup-key-to-api
+[33mabbdb9f6[m reuse the literal defined in register
+[33md5a28d12[m move podgroup key to api
+[33ma6cca6e1[m cleanup: "allocable" -> "allocated" to adapt to upstream naming convension
+[33m36b902c1[m add test for func TestGetPodEffectiveRequest
+[33mf09777eb[m fix bugs of resource calculation in node resource topology
+[33mec632c3d[m Merge pull request #318 from Tal-or/best_effort_pod_fix
+[33m954d0c2e[m integration-test: add test for score-plugin with best-effort pod scheduling
+[33m8b5209c4[m NodeResourceTopology: handle best-effort pods in score plugin
+[33m7b3182b2[m Merge pull request #272 from Huang-Wei/helm-sa-rbac
+[33m04334eb1[m install: create a RoleBinding for obtain delegated authentication
+[33m5f63e9cc[m Merge pull request #313 from everpeace/patch-1
+[33m15e4bf77[m Add PreemptionToleration to Plugin List in README
+[33m77279bf4[m Merge pull request #308 from lianghao208/pod_group_reconcile
+[33m407b2d19[m Merge pull request #224 from everpeace/preemption-toleration-impl
+[33m2090734a[m PreemptionToleration: plugin implementation and unit/integration tests
+[33mf497cded[m PreemptionToleration: Migrated required unexported functions from DefaultPreemption plugin
+[33m3a5a8ef3[m PreemptionToleration: define PreemptionTolerationArgs in v1beta2
+[33m32202401[m Merge pull request #310 from Huang-Wei/nominate-alex
+[33m1c744866[m Nominate denkensk as an approver
+[33m7cf6512b[m Merge pull request #298 from Huang-Wei/chart-v1beta1
+[33mda8c3d19[m Fix controller reconcile PodGroup status
+[33m37e76998[m Merge pull request #307 from mateuszlitwin/mlitwin-post-filter-on-every-failure
+[33m822c3246[m coscheduling: PostFilter handles both Filter and PreFilter
+[33m6b3642f3[m Merge pull request #299 from Huang-Wei/activate-podgroup-pods
+[33m4e7064be[m Merge pull request #306 from spiffxp/fix-gcb-image
+[33m6fafbb66[m fixup: address comments
+[33meebcd60f[m images: fix invalid k8s-staging-test-infra/gcb-docker-gcloud tag
+[33m9943664e[m Merge pull request #305 from spiffxp/use-k8s-infra-for-gcb-image
+[33mb13a39d2[m images: use k8s-staging-test-infra/gcb-docker-gcloud
+[33me51daaef[m feat: activate sibling pods of a PodGroup
+[33m7c140514[m Merge pull request #302 from Huang-Wei/rm-extra-informer
+[33m67e87eb1[m Merge pull request #304 from k8stopologyawareschedwg/nrt-doc-update
+[33m7c21f6f8[m NodeResourceTopology: Update README with NRT CR dependency information
+[33mb8d13e17[m Merge pull request #292 from k8stopologyawareschedwg/nrt-cluster-scoped
+[33m71950417[m NodeResourceTopology: Keep v1beta1 scheduler config specs
+[33m417f2f6e[m Merge pull request #303 from WLBF/master
+[33m38566944[m fix typo
+[33m7fb25a6f[m avoid instantiate core resource's informers
+[33m031a62e8[m NodeResourceTopology: README updates
+[33m0294b94f[m NodeResourceTopology: Remove namespace field from v1beta2 plugin args
+[33m8cff4da4[m NodeResourceTopology: Remove namespace field from v1beta1 plugin args
+[33m7e9a8f17[m NodeResourceTopology: Bump NRT API to version v0.0.12
+[33mc64a7508[m 0.21 chart should go with v1beta1
+[33m455cb8a6[m Merge pull request #290 from Huang-Wei/v1beta2-args
+[33mdc67e5df[m doc update
+[33m478a9cb0[m Merge pull request #207 from Huang-Wei/cleanup-coscheduling
+[33m7de4102e[m standardize error and state of return values of Permit
+[33m836bf18b[m switch to v1beta2 and add v1beta2 tests
+[33m89eeb616[m add v1beta2 args
+[33m2e2b8be9[m copy v1beta1 to v1beta2 and rename
+[33m6e58632f[m Merge pull request #286 from Huang-Wei/doc-update-0.21
+[33m08425194[m Merge pull request #287 from Huang-Wei/bump-1.22
+[33mce1be9b0[m fixup: address comments
+[33mca2773df[m bump go version to 1.16 in Dockerfile
+[33m08f35615[m Semi-remove kubeConfig args and reuse upstream test utility to start API Server
+[33mf8e7f888[m adapt to k/k PR 102796
+[33md7fe48a5[m fix test failures
+[33m40dc9771[m BalanceAttachedNodeVolumes feature removed
+[33m23887920[m add ResourceList() back for *framework.Resource
+[33mfb7b1a81[m go module files
+[33md6c5abdc[m Merge pull request #288 from yuanchen8911/master
+[33m007c4c24[m Fix a typo in a KEP directory name
+[33m3f1698ad[m update the documents to adapt to 0.21.X
+[33m418ff2c0[m Merge pull request #283 from Huang-Wei/bump-1.21.6
+[33m8c260e2d[m bump k8s deps to 1.21.6
+[33m595327d8[m Trimaran: bug fixes for unpopulated watcher metrics (#280)
+[33m83aa34ed[m Merge pull request #269 from Huang-Wei/update-install-doc
+[33m609794cd[m Merge pull request #279 from Huang-Wei/merge-verify-makefile-entries
+[33m0f5a76d0[m merge verification-related Makefile entries
+[33m898534da[m Merge pull request #277 from swatisehgal/nrt-ns-default
+[33m35765282[m Merge pull request #268 from pravarag/verify-structured-logs
+[33m8af58b51[m add verify script for structured logging
+[33mc004c356[m NodeResourceTopology: Make `default` as the default namespace in config
+[33m24bba847[m Merge pull request #275 from yuanchen8911/master
+[33me09019e3[m Add CapacityScheduling KubeCon presentation
+[33m1188ec3c[m Merge pull request #273 from Huang-Wei/logging-leftover
+[33md4e04f46[m Leftover for structured logging migration
+[33m795a8773[m Migrate structure logging 3 (#267)
+[33m1a9615e6[m doc: use the symbolic-linked folder to apply CRDs
+[33m1eb73e15[m Merge pull request #213 from denkensk/fix/release-eq-after-delete
+[33m213025dd[m add nominated pods in resoruce compute
+[33mcb4b5ec3[m Merge pull request #265 from JaneLiuL/master
+[33mb65425c9[m Improve UT: add api default test
+[33m1a3ad3f0[m Merge pull request #263 from Huang-Wei/ln-helm-chart
+[33m2386ca2d[m Ensure CRDs in the Helm Chart to be up-to-date
+[33m988bd2b5[m Merge pull request #262 from zorro786/uptick-load-watcher
+[33mfb4d54a4[m Update load watcher dependency
+[33m9dd6a969[m Merge pull request #256 from Tal-or/nrt_disqulifes_pods
+[33m427f37b0[m noderesourcetopology: crosschecks NUMA node resources with node resources
+[33m4f55a926[m Merge pull request #259 from yharish991/master
+[33m1b086706[m migrate noderesources, noderesourcetopology dirs to structured logging
+[33mc3260d68[m Merge pull request #258 from Huang-Wei/verify-crdgen-ci-job
+[33m351ca2c9[m Move verify-crdgen as a standalone Makefile entry
+[33m43a66700[m Merge pull request #222 from pravarag/verify-crd-gen
+[33m1391ed60[m update code to create soft links of crds
+[33mdd932495[m add verify-crd-gen script
+[33m49ebc2b8[m Merge pull request #248 from JaneLiuL/master
+[33mb80b4801[m Merge pull request #250 from CIPHERTron/structured-logs
+[33mf6fa3a12[m Migrate to Structured Logs in pkg/controller
+[33mf9ec4f6b[m Fix podgroup UT issue
+[33m9487dd73[m Merge pull request #243 from yingjianwu199868/capacityschedulingDoc
+[33ma6f0af2c[m Merge pull request #246 from cwdsuzhou/doc
+[33m838f6727[m Update kep/9-capacity-scheduling/README.md
+[33m8aa36123[m Merge pull request #235 from JaneLiuL/master
+[33m2ff32866[m Merge pull request #247 from pravarag/update-structured-logging
+[33md5d833ab[m update code as per structured logging
+[33m934109fb[m Update coscheduling doc and add PostFilter
+[33ma0092662[m Structured Logging migration: modify part logs of capacity schedule
+[33meab609df[m noderesourcetopology: Use Quantity in ResourceInfo (#214)
+[33mcfb6b361[m Merge pull request #245 from arvidOtt/master
+[33m460fce41[m Merge pull request #237 from lianghao208/scheme_test
+[33m85e5620e[m migrate to structured logging
+[33mf550ef53[m Add scheme_test.go
+[33mb0a18c59[m Merge pull request #238 from yangtau/fix/access-nil
+[33m0c058979[m Fix access to null pointer
+[33m2b6be7eb[m Merge pull request #220 from Tal-or/tas_score_plugin
+[33mc056c296[m Merge pull request #234 from Huang-Wei/de-dep-etcd
+[33md0ac1e25[m update etcd script to not depend on ss or netstat
+[33m66efb965[m Manifest files for Score plugin
+[33m563a9ed8[m Generated files for Score plugin
+[33m12581d7f[m Score plugin for topology aware scheduler
+[33m08bdab56[m Merge pull request #226 from Huang-Wei/bump-1.21
+[33ma2e24a1d[m implement EventsToRegister() for PreFilter & Filter plugins
+[33mb30eb8ad[m Changes to adapt to upstream interface changes
+[33m46d847e4[m go module files
+[33mf64abbe5[m Merge pull request #230 from Huang-Wei/update-0.20-doc
+[33m5a343b9a[m update the documents to adapt to 0.20.X
+[33m95d73620[m Merge pull request #228 from Huang-Wei/tag-0.20.10
+[33m69dd17b6[m bump k8s deps to 1.20.10
+[33md9811fed[m Merge pull request #212 from yuchen-sun/feat/ElasticQuota/controller
+[33m4942ccd9[m feat: add elastic quota controller
+[33m74438bd0[m Merge pull request #205 from everpeace/preemption-toleration-kep
+[33maa22f0cd[m Added KEP: Preemption Toleration
+[33m03b3f69f[m Merge pull request #218 from lianghao208/podstat-add-example-config
+[33me1af955e[m Merge pull request #217 from yuanchen8911/master
+[33m62397925[m add example config for podState plugin.
+[33m6c71aa0e[m Add resource limit-aware scoring KEP
+[33m3f705f7a[m Merge pull request #210 from yuchen-sun/docs/sjc/capacity-scheduling
+[33mc9418375[m Merge pull request #215 from AlexeyPerevalov/AddComments
+[33m06f741c7[m Add commens for NodeResourceTopologyMatchArgs
+[33m914a6552[m Merge pull request #209 from suigh/0701
+[33m5d246064[m Merge pull request #197 from k8stopologyawareschedwg/update_TAS_KEP
+[33meccb8d85[m docs: add User Story in capacity-scheduling
+[33mefe903ae[m Merge pull request #208 from ikarldasan/master-to-main
+[33m10b451e8[m up minAvailable to minMember
+[33m341ceb0b[m rename master to main
+[33m98a888d1[m Merge pull request #206 from slaysd/patch-1
+[33m19b4d532[m fix: WaitForCacheSync parameter
+[33mcbb5c257[m Update Topology Aware Scheduling's KEP
+[33maae8216c[m Merge pull request #202 from Huang-Wei/timeout-40m
+[33m65223046[m Adjust the timeout to 40m for scheduler-plugins integration test
+[33m2a41bbcd[m Merge pull request #193 from FingerLiu/feat/helm-support
+[33mbb43d666[m [ADD] add helm chart
+[33m8a376e19[m Merge pull request #196 from suigh/0524
+[33m458a2c6a[m set waittime to 0
+[33ma70dbe1a[m Merge pull request #195 from mcristina422/patch-1
+[33m2e5b334f[m Fix nil pointer dereference logic
+[33mfc58f9a9[m Merge pull request #119 from AlexeyPerevalov/KEPTopologyAwareSchedulerPerNUMA
+[33m2e3441d4[m Merge pull request #190 from yuanchen8911/master
+[33m1bf076dd[m Add PodState plugin test to main_test
+[33m7d969ada[m Merge pull request #187 from juliorenner/patch-1
+[33m42f751d9[m docs: add args struct convention name
+[33m2a8cc74e[m Merge pull request #185 from KohlsTechnology/more-docs
+[33me58ae8d9[m Document List of Provided Plugins
+[33me01edc2d[m Merge pull request #183 from chloejiwon/minor-fix
+[33mcd9bf178[m Fix typo in doc/install.md
+[33m1c5cb974[m Merge pull request #182 from KohlsTechnology/docs-0.19.9
+[33mab9cab9c[m Merge pull request #181 from chendave/doc_update
+[33mc78c7597[m Merge pull request #177 from Huang-Wei/bump-1.20
+[33m69756a3b[m Update Compatibility Matrix For v0.19.9 Release
+[33mc01831f1[m Doc: update doc to fix couple of minor issues
+[33m95f44b20[m bump go module files
+[33m751944fa[m adapt to upstream interface changes
+[33me8e57711[m Merge pull request #179 from KohlsTechnology/bump-deps-1.19.9
+[33m16b3ba78[m Merge pull request #143 from k8stopologyawareschedwg/TopologyAwareSchedulerPerNUMA
+[33mc8094c17[m Documentation for NUMA aware scheduler plugin
+[33me0c0dfc6[m Manifest files for NUMA aware scheduler plugin
+[33md74ae3d0[m Generated files for NUMA aware scheduler plugin
+[33me9222926[m NUMA aware scheduling
+[33me78e651d[m bump deps to k8s 1.19.9
+[33m676bb2ae[m Merge pull request #172 from KohlsTechnology/go-1.15.10
+[33m0dfdd527[m Merge pull request #173 from Huang-Wei/fix-install-doc
+[33m61c72af6[m Remove the unreserve config in installation doc
+[33m7c433b2a[m Bump To Go 1.15.10
+[33m4028f221[m Merge pull request #170 from cwdsuzhou/pg_status
+[33m049822d8[m Add default value to pg status
+[33m268c1b71[m Merge pull request #156 from atantawi/risk
+[33m73eb56fc[m added LoadVariationRiskBalancing plugin (code)
+[33m0edd22f3[m added LoadVariationRiskBalancing plugin (apis + docs)
+[33mc12f81eb[m Merge pull request #163 from Huang-Wei/install-doc-update
+[33mf6ed2337[m Update install doc to match release v0.19.8
+[33me7ca5ee3[m Merge pull request #164 from Huang-Wei/go-sum-cleanup
+[33m2d54ffbc[m go sum cleanup
+[33m6e5765a8[m Merge pull request #162 from KohlsTechnology/arm64-docs
+[33m7f836b7f[m Update Docs For v0.19.8 Release
+[33mac9b9382[m Merge pull request #158 from Chenxi-Seu/patch-1
+[33md87ad577[m Merge pull request #159 from KohlsTechnology/fix-container-image-builds
+[33m0ba35f29[m Revert "Simplify Multi Arch Build Targets"
+[33m29da026a[m Merge pull request #133 from KohlsTechnology/multi-arch-builds
+[33m2e0d5182[m Update the Design Details in README.md
+[33m9ca52707[m Simplify Multi Arch Build Targets
+[33m0c6cdcb3[m Merge pull request #157 from swatisehgal/minor-fix
+[33mbfdf4923[m Patch fixing a minor typo
+[33m72e96649[m Add Support For Container Image Multi-Arch Builds
+[33m936ffff5[m Merge pull request #153 from KohlsTechnology/go-1.15.8
+[33m2a22e0dc[m Merge pull request #152 from wangchen615/issue144
+[33md28fdc79[m Resolve issue #144
+[33m93d7aea6[m Bump to Go 1.15.8
+[33m8ab9b406[m Merge pull request #148 from penglei/master
+[33mff6de608[m Merge pull request #149 from Huang-Wei/bump-1.19.8
+[33m46b132fe[m bump deps to k8s 1.18.9
+[33m79882332[m Fix PodGroup CRD definition has no status field schema
+[33mb7c57017[m Merge pull request #142 from xq2005/install-doc
+[33mbd580ac9[m add a install doc about released image
+[33mbc009908[m Merge pull request #5 from swatisehgal/update-kep
+[33m5fe9e9bc[m Updates to the KEP based on the lastest changes - Capturing API updates and RBAC rules (for accessing NodeResourceTopology CRD) - Capturing the import path of the CRD API as   https://github.com/k8stopologyawareschedwg/noderesourcetopology-api   rather than placing the API defnition in the scheduler-plugin repo itself.
+[33me80c4684[m Merge pull request #115 from zorro786/real-load-plugin
+[33m42065d4d[m Add TargetLoadPacking plugin
+[33m62333d4b[m Merge pull request #139 from cwdsuzhou/fix_count
+[33mf25c9b3c[m Merge pull request #126 from cwdsuzhou/Post-Filter
+[33mb4ae61e1[m Fix PostBind group status update
+[33m2b09d80d[m Add PostFilter implementation
+[33m1ea66fcc[m Merge pull request #138 from draveness/patch-1
+[33mc03e326d[m style: fix typo in capacity scheduling
+[33m1446fe83[m Merge pull request #134 from cwdsuzhou/fix_resource_computation
+[33m9b037364[m Bugfix: cluster resource computation
+[33medc3b8af[m Merge pull request #136 from warmchang/go1.15.5
+[33m3e9745d9[m Merge pull request #135 from ChAnYaNG97/patch-1
+[33m9e93369f[m Update To Go 1.15.5
+[33m24972e88[m fix wrong number of available cpus in README
+[33mee453783[m Merge pull request #128 from AlexeyPerevalov/AdditionalDocumentation
+[33mbe05bb37[m Additional documentation for development purpose
+[33m1857f2d9[m Merge pull request #73 from denkensk/capacity-scheduling-plugin
+[33m1a684948[m capacity scheduling plugin
+[33m58fb7cd8[m Merge pull request #130 from Huang-Wei/additionProperties
+[33m8ced3815[m Add additionalProperties field for podgroup.minResources field
+[33md0b65d4f[m Merge pull request #124 from cwdsuzhou/case_precheck
+[33m5aaa091f[m Test cases for resource pre-check
+[33m1ce5ead7[m Merge pull request #122 from AlexeyPerevalov/FixCaseSensitiveArgs
+[33m40b4efe6[m Fix filter name in noderesources example
+[33m6237ddfd[m Fix attribute arg in capacityscheduling example
+[33mac875a66[m Merge pull request #109 from cwdsuzhou/resource_check
+[33mc7aa8c1d[m Implement resource pre-check
+[33mdbacf977[m Topology aware scheduler plugin
+[33m1708d819[m Merge pull request #111 from KohlsTechnology/go-1.15.2
+[33m95d556d8[m Update To Go 1.15.2
+[33mab1933f3[m Merge pull request #107 from KohlsTechnology/image-docs
+[33me216d680[m Update README With Official Container Image Details
+[33m1cb0ef67[m Merge pull request #103 from lianghao208/pod-effect
+[33mfeee9e70[m add: add pod effect plugin and integration test
+[33mb5dec122[m Merge pull request #96 from yuanchen8911/testing
+[33mb1f3dc3f[m Clean up and update CoschedulingArgs
+[33m011599fb[m Merge pull request #105 from Huang-Wei/fix-CRD-v1-spec
+[33me582ba8f[m Fix spec of CRD examples
+[33m7c4e824f[m Merge pull request #100 from yuanchen8911/initlog
+[33m0948ac4a[m Merge pull request #101 from cwdsuzhou/fix_integration_test
+[33mc582722b[m Fix flaky integration test
+[33m933bac91[m Add logs.InitLogs() to main program
+[33md8b682e2[m Merge pull request #88 from cwdsuzhou/prescheduling
+[33mf635bf89[m Prescheduling logic to controller
+[33mfb988b6e[m Merge pull request #93 from yuanchen8911/new-coscheduling
+[33m87db1188[m coscheduling: cleanup and fixes
+[33mc0461664[m Merge pull request #92 from lianghao208/lianghao208-coscheduling-comment
+[33m64109833[m add comments on calculateBoundPods method
+[33m65992bd3[m Merge pull request #87 from Huang-Wei/add-reviewers
+[33mb8375cd4[m Add reviewers
+[33mf2925497[m Merge pull request #57 from cwdsuzhou/master
+[33m8adb04ce[m Implementation of coscheduling base on crd[Part 2]: coscheduling refactor-must have
+[33m8dec3f44[m Merge pull request #61 from zorro786/real-load-kep
+[33m6b7e77af[m Add Trimaran: Real Load Aware Scheduling KEP
+[33md76bec0a[m Merge pull request #79 from lianghao208/lianghao208-options
+[33mff01e8d8[m Update options.go
+[33mab61ed63[m Merge pull request #76 from KohlsTechnology/fix-version-output
+[33mc4f210f1[m Fix Version Output For Automated Container Builds
+[33m939c1c03[m Merge pull request #72 from yuanchen8911/master
+[33m30549a3a[m Fix the version number
+[33m4cca97ed[m Merge pull request #69 from KohlsTechnology/docs-update
+[33mf789efee[m Merge pull request #68 from KohlsTechnology/revert-make-clean
+[33m82f9aeff[m Merge pull request #60 from Huang-Wei/unversioned-api-type
+[33mae93c2dc[m Document Location For Controller Container Image
+[33m85e32384[m Revert "Update "make clean" To Only Delete Specific Files"
+[33m1581a08b[m Merge pull request #67 from KohlsTechnology/fix-container-image-builds
+[33m6c97856b[m Fix Automated Container Image Builds
+[33m82ae0d97[m Use concrect type in unversioned(internal) API fields
+[33me80e75fe[m Merge pull request #66 from KohlsTechnology/automated-image-build-alternative
+[33mfac4fef3[m Merge pull request #50 from denkensk/capacity-scheduling
+[33m312c38d6[m capacity scheduling on framework api define
+[33m23a8e8b4[m Merge pull request #64 from yuanchen8911/coscheduling
+[33m25d677ae[m Update "make clean" To Only Delete Specific Files
+[33m3715f3ec[m Merge pull request #65 from KohlsTechnology/docker-build-speed-up
+[33mf4506871[m Speed Up Docker Image Build Times
+[33m540dd46d[m Improve coscheduling's PodGroup cleanup
+[33m88c2dea4[m Merge pull request #56 from Huang-Wei/cross-node-preemption
+[33m2d3143b9[m [Sample] Cross node preemption plugin
+[33m44abd6db[m Merge pull request #58 from cwdsuzhou/fix_crd_field
+[33mac0b4d39[m Rename MaxScheduleTime to ScheduleTimeoutSeconds
+[33m96fd011f[m Merge pull request #52 from cwdsuzhou/master
+[33maeb842c2[m Implemetaion of coscheduling base on crd[Part 1]: controller and crd
+[33ma286d506[m Merge pull request #55 from denkensk/fix-pggc-clean
+[33mc8b42153[m fix TestPodGroupClean
+[33mc5deb856[m Merge pull request #36 from patricklundquist/master
+[33m747f01c0[m Add node resources allocatable scheduler plugin and tests.
+[33m0ccdfd01[m Merge pull request #53 from KohlsTechnology/container-image-docs
+[33mc0d0a3e1[m Stub In End User Documentation For Container Registry
+[33madd93491[m Update Release Documentation
+[33me2ef5dbc[m Merge pull request #51 from KohlsTechnology/container-image
+[33m192f109d[m Merge pull request #48 from patricklundquist/kep
+[33m18aacc70[m Add kep for node resources allocatable score plugin.
+[33ma295a829[m Update Dockerfile
+[33mb47d29f0[m Add Container Image Build Automation
+[33m70d52d2f[m Container Image Builds For k8s.gcr.io
+[33m6303fc5d[m Merge pull request #42 from cwdsuzhou/master
+[33m122cdead[m Add kep for coscheduling based on CRD
+[33maffecd7b[m Merge pull request #45 from Huang-Wei/bump-master-1.19
+[33m2cf12335[m Ensure CoschedulingArgs works in an e2e workflow
+[33m4923de73[m Fix openapi-gen script
+[33m8d2cbfd0[m Core logic adapting to v1.19.0
+[33mc5fadadc[m API and codegen for out-of-tree versioned args
+[33m7cc567d9[m CI misc
+[33m0ae836df[m go module changes
+[33m7ec02317[m Merge pull request #10 from denkensk/capacity-scheduling-kep
+[33m29244a6e[m Merge pull request #43 from Huang-Wei/bump-v1.18.8
+[33mad595a72[m Bump k8s deps to v1.18.8
+[33m8a5367f2[m Merge pull request #40 from yuanchen8911/test
+[33m1c66e8aa[m add capacity kep
+[33md88c58d7[m Change time to int64 and use DecodeInto
+[33m7a07bdba[m Made coscheduling parameters configurabable
+[33mca4fc2ad[m Merge pull request #41 from yuanchen8911/patch-2
+[33mf2132b37[m Fix the broken link to the coscheduling KEP
+[33mc247636e[m Merge pull request #39 from vincent-pli/fix-typo
+[33m391d5386[m Fix typo
+[33m43427d7b[m Merge pull request #37 from vincent-pli/add-test-no-pgroup
+[33mce78148b[m Add UT for sort for PG pod and no PG pod
+[33md785dc73[m Merge pull request #38 from Huang-Wei/refine-kep-2
+[33m0c96fb81[m Refine KEP structure
+[33mac59f971[m Merge pull request #32 from denkensk/clean-podgroup-history
+[33me5d3da47[m Merge pull request #35 from Huang-Wei/dockerfile
+[33mc492b371[m Add make sub-command to build docker image
+[33mce8a1554[m clean podgroup history
+[33me71c042a[m Merge pull request #33 from denkensk/fix-permit-bug
+[33maf71d530[m fix permit bug
+[33me0cbbce9[m Merge pull request #15 from denkensk/update-stage
+[33mc7b471d2[m Merge pull request #28 from Huang-Wei/coscheduling-test-timeout
+[33m4467a38c[m Mitigate the timeout issue of coscheduling integration test
+[33mb1000fb1[m Merge pull request #30 from yuanchen8911/simple
+[33me07e04a2[m remove unnecessary else in queue_sort.go
+[33m3dd9b1ae[m Merge pull request #24 from yuanchen8911/errorcheck
+[33m32e9c787[m coscheduling: enhance PodGroupInfo and error check
+[33m62114b43[m Merge pull request #27 from DeliangFan/improve-accuracy-for-current-pod
+[33mb44f5c3b[m improve the current pod in accurate
+[33m57ac6fed[m Merge pull request #22 from Huang-Wei/refactor-coscheduling-ut
+[33m041920fc[m simplify coscheduling unit test
+[33meb60c936[m Merge pull request #26 from Huang-Wei/skip-coscheduling-integration-test
+[33m14bd0da0[m Temporary disable coscheduling integration test
+[33mebdec55d[m Merge pull request #17 from yuanchen8911/origin
+[33m2d8237fd[m Merge pull request #16 from yuanchen8911/upstream
+[33mcd1e1da2[m coscheduling: rename plugin and fix comments
+[33m4b116ae6[m QoS QueueSort: rename file and plugin and fix a comment
+[33m0f909974[m update stage to beta
+[33m47e371ac[m Merge pull request #11 from denkensk/add-adopters
+[33mcc7ebc77[m add adopters of framework
+[33mba1a6315[m Merge pull request #4 from denkensk/co-scheduling
+[33m98b12f12[m add coscheduling plugin
+[33m7c43aad8[m Merge pull request #7 from Huang-Wei/make-default-action
+[33mf33ed858[m Add a Makefile default action
+[33m1b70509d[m Merge pull request #6 from CriaHu/CriaHu-patch-1
+[33m9628faf9[m fix broken link : https://git.k8s.io/community/contributors/guide/contributor-cheatsheet.md
+[33m2545f10a[m Merge pull request #3 from Huang-Wei/sample-qos-plugin
+[33m83ed4fb7[m CI files
+[33m361c0a5d[m go module settings
+[33md3c3baba[m QoS Sort plugin sample src code
+[33m3abf6ba9[m Merge pull request #2 from denkensk/coscheduling-kep
+[33m98a891a3[m add coscheduling kep
+[33ma97bed0e[m Update template files to include repo-specific info
+[33md4e83f3a[m Initial commit

@@ -3,6 +3,8 @@ package architectureaware
 import (
 	"context"
 	"fmt"
+    "os"
+    "strings"
 	"encoding/json"
         metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/api/core/v1"
@@ -10,6 +12,8 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/args"
+
 )
 
 const (
@@ -45,7 +49,8 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context,  _ *framework.CycleSta
 	deviceType := node.Labels["nvidia.com/device-plugin.config"]
 	klog.Infof("[ArchitectureAware] Node %s have label nvidia.com/device-plugin.config=%s", nodeName, deviceType)
 
-	var newImage string
+	// var newImage string
+	var newTag string
 	switch deviceType {
 	case "orin":
 		// newImage = "192.168.1.252:480/jetson/multicomponent_service:r36"

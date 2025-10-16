@@ -25,11 +25,12 @@ import (
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type ArchitectureAwareArgs struct {
-    metav1.TypeMeta 
+    metav1.TypeMeta `json:",inline"`
 
     OrinTag string `json:"orinTag,omitempty"`
     NanoTag string `json:"nanoTag,omitempty"`
 }
+
 
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

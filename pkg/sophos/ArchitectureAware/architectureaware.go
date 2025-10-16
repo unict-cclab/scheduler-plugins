@@ -67,10 +67,10 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context,  _ *framework.CycleSta
         klog.Warningf("[ArchitectureAware] No tag found for device type %s", deviceType)
         return framework.NewStatus(framework.Success, "")
     }
-	podCopy := pod.DeepCopy()
-	updated := false
+	// podCopy := pod.DeepCopy()
+	// updated := false
 	var containerIndex int = -1
-	var newImage string
+	// var newImage string
 	for i := range pod.Spec.Containers {
 		if pod.Spec.Containers[i].Name == "nn" {
 			containerIndex = i

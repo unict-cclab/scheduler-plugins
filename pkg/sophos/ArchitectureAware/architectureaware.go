@@ -12,7 +12,6 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/args"
 
 )
 
@@ -140,18 +139,29 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context,  _ *framework.CycleSta
 // 	return pl, nil
 // }
 func New(_ context.Context, obj runtime.Object, handle framework.Handle) (framework.Plugin, error) {
+    // Crea la struct dei parametri
     args := &Args{}
+
+    // Decodifica l'oggetto passato dal scheduler YAML
     if obj != nil {
         if err := framework.DecodeInto(obj, args); err != nil {
             return nil, fmt.Errorf("failed to decode args: %v", err)
         }
     }
 
+    // Se non sono stati passati, fallback sulle env
+    if args.OrinTag == "" {
+        args.OrinTag = os.Getenv("TAG_ORIN")
+    }
+    if args.NanoTag == "" {
+        args.NanoTag = os.Getenv("TAG_NANO")
+    }
+
     pl := &ArchitectureAware{
         handle: handle,
     }
 
-    // Imposta i tag in variabili globali o nel plugin stesso
+    // Imposta eventuali variabili globali o usa direttamente args dentro il plugin
     os.Setenv("TAG_ORIN", args.OrinTag)
     os.Setenv("TAG_NANO", args.NanoTag)
 

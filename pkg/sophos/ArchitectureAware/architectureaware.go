@@ -12,7 +12,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/apimachinery/pkg/types"
-
+	"sigs.k8s.io/scheduler-plugins/apis/config"
 )
 
 const (
@@ -138,28 +138,20 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context,  _ *framework.CycleSta
 // 	}
 // 	return pl, nil
 // }
+
 func New(_ context.Context, obj runtime.Object, handle framework.Handle) (framework.Plugin, error) {
-	args, ok := obj.(*config.ArchitectureAwareArgs)
-	if !ok {
-		return nil, fmt.Errorf("want args to be of type ArchitectureAwareArgs, got %T", obj)
-	}
-
-
-    // Se non sono stati passati, fallback sulle env
-    if args.OrinTag == "" {
-        args.OrinTag = os.Getenv("TAG_ORIN")
-    }
-    if args.NanoTag == "" {
-        args.NanoTag = os.Getenv("TAG_NANO")
+    args, ok := obj.(*config.ArchitectureAwareArgs)
+    if !ok {
+        return nil, fmt.Errorf("want args to be of type ArchitectureAwareArgs, got %T", obj)
     }
 
     pl := &ArchitectureAware{
         handle: handle,
     }
 
-    // Imposta eventuali variabili globali o usa direttamente args dentro il plugin
     os.Setenv("TAG_ORIN", args.OrinTag)
     os.Setenv("TAG_NANO", args.NanoTag)
 
     return pl, nil
 }
+

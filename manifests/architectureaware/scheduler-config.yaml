@@ -5,7 +5,7 @@ leaderElection:
   leaderElect: false
 
 clientConnection:
-  kubeconfig: "REPLACE_ME_WITH_KUBE_CONFIG_PATH"
+  kubeconfig: ""
 
 profiles:
   - schedulerName: scheduler-plugins-scheduler
@@ -17,4 +17,6 @@ profiles:
           - name: "*"
     pluginConfig:
       - name: ArchitectureAware
-        args: {}
+        args:
+          orinTag: "r36"
+          nanoTag: "latest"

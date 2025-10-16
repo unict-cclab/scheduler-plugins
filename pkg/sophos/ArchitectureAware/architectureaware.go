@@ -19,6 +19,10 @@ const (
 type ArchitectureAware struct {
 	handle framework.Handle
 }
+type Args struct {
+    OrinTag string `json:"orinTag,omitempty"`
+    NanoTag string `json:"nanoTag,omitempty"`
+}
 
 var _ = framework.PreBindPlugin(&ArchitectureAware{})
 
@@ -44,19 +48,32 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context,  _ *framework.CycleSta
 	var newImage string
 	switch deviceType {
 	case "orin":
-		newImage = "192.168.1.252:480/jetson/multicomponent_service:r36"
+		// newImage = "192.168.1.252:480/jetson/multicomponent_service:r36"
+		newTag = os.Getenv("TAG_ORIN") // es. r36
 	case "nano":
-		newImage = "192.168.1.252:480/jetson/multicomponent_service:latest"
+		// newImage = "192.168.1.252:480/jetson/multicomponent_service:latest"
+		newTag = os.Getenv("TAG_NANO") // es. latest
 	default:
 		klog.Warningf("[ArchitectureAware] Node %s without valid label (%s), Image not modified", nodeName, deviceType)
 		return framework.NewStatus(framework.Success, "")
 	}
 
+    if newTag == "" {
+        klog.Warningf("[ArchitectureAware] No tag found for device type %s", deviceType)
+        return framework.NewStatus(framework.Success, "")
+    }
 	podCopy := pod.DeepCopy()
 	updated := false
 	for i := range podCopy.Spec.Containers {
 		if podCopy.Spec.Containers[i].Name == "nn" {
 			oldImage := podCopy.Spec.Containers[i].Image
+			 // separa repository e tag
+            repo := oldImage
+            if idx := strings.LastIndex(oldImage, ":"); idx != -1 {
+                repo = oldImage[:idx]
+            }
+
+            newImage := fmt.Sprintf("%s:%s", repo, newTag)
 			podCopy.Spec.Containers[i].Image = newImage
 			klog.Infof("[ArchitectureAware] Change container 'nn' image from %s → %s", oldImage, newImage)
 			updated = true
@@ -111,9 +128,27 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context,  _ *framework.CycleSta
 
 }
 
-func New(_ context.Context, _ runtime.Object, handle framework.Handle) (framework.Plugin, error) {
-	pl := &ArchitectureAware{
-		handle: handle,
-	}
-	return pl, nil
+// func New(_ context.Context, _ runtime.Object, handle framework.Handle) (framework.Plugin, error) {
+// 	pl := &ArchitectureAware{
+// 		handle: handle,
+// 	}
+// 	return pl, nil
+// }
+func New(_ context.Context, obj runtime.Object, handle framework.Handle) (framework.Plugin, error) {
+    args := &Args{}
+    if obj != nil {
+        if err := framework.DecodeInto(obj, args); err != nil {
+            return nil, fmt.Errorf("failed to decode args: %v", err)
+        }
+    }
+
+    pl := &ArchitectureAware{
+        handle: handle,
+    }
+
+    // Imposta i tag in variabili globali o nel plugin stesso
+    os.Setenv("TAG_ORIN", args.OrinTag)
+    os.Setenv("TAG_NANO", args.NanoTag)
+
+    return pl, nil
 }

@@ -20,12 +20,16 @@ const (
 	Name = "ArchitectureAware"
 )
 
+// type ArchitectureAware struct {
+// 	handle framework.Handle
+// }
+// type Args struct {
+//     OrinTag string `json:"orinTag,omitempty"`
+//     NanoTag string `json:"nanoTag,omitempty"`
+// }
 type ArchitectureAware struct {
 	handle framework.Handle
-}
-type Args struct {
-    OrinTag string `json:"orinTag,omitempty"`
-    NanoTag string `json:"nanoTag,omitempty"`
+	tags   map[string]string // mappa label → tag
 }
 
 var _ = framework.PreBindPlugin(&ArchitectureAware{})
@@ -132,12 +136,16 @@ func New(_ context.Context, obj runtime.Object, handle framework.Handle) (framew
         return nil, fmt.Errorf("want args to be of type ArchitectureAwareArgs, got %T", obj)
     }
 
-    pl := &ArchitectureAware{
-        handle: handle,
-    }
+    // pl := &ArchitectureAware{
+    //     handle: handle,
+    // }
 
-    os.Setenv("TAG_ORIN", args.OrinTag)
-    os.Setenv("TAG_NANO", args.NanoTag)
+	pl := &ArchitectureAware{
+		handle: handle,
+		tags:   args.Tags,
+	}
+    //os.Setenv("TAG_ORIN", args.OrinTag)
+    //os.Setenv("TAG_NANO", args.NanoTag)
 
     return pl, nil
 }

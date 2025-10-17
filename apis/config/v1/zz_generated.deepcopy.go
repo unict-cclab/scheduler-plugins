@@ -31,6 +31,13 @@ import (
 func (in *ArchitectureAwareArgs) DeepCopyInto(out *ArchitectureAwareArgs) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
+	if in.Tags != nil {
+		in, out := &in.Tags, &out.Tags
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	return
 }
 

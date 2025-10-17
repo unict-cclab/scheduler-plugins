@@ -27,8 +27,9 @@ import (
 type ArchitectureAwareArgs struct {
     metav1.TypeMeta `json:",inline"`
 
-    OrinTag string `json:"orinTag,omitempty"`
-    NanoTag string `json:"nanoTag,omitempty"`
+	Tags map[string]string `json:"tags,omitempty"`
+    // OrinTag string `json:"orinTag,omitempty"`
+    // NanoTag string `json:"nanoTag,omitempty"`
 }
 
 

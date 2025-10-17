@@ -194,8 +194,7 @@ func RegisterConversions(s *runtime.Scheme) error {
 }
 
 func autoConvert_v1_ArchitectureAwareArgs_To_config_ArchitectureAwareArgs(in *ArchitectureAwareArgs, out *config.ArchitectureAwareArgs, s conversion.Scope) error {
-	out.OrinTag = in.OrinTag
-	out.NanoTag = in.NanoTag
+	out.Tags = *(*map[string]string)(unsafe.Pointer(&in.Tags))
 	return nil
 }
 
@@ -205,8 +204,7 @@ func Convert_v1_ArchitectureAwareArgs_To_config_ArchitectureAwareArgs(in *Archit
 }
 
 func autoConvert_config_ArchitectureAwareArgs_To_v1_ArchitectureAwareArgs(in *config.ArchitectureAwareArgs, out *ArchitectureAwareArgs, s conversion.Scope) error {
-	out.OrinTag = in.OrinTag
-	out.NanoTag = in.NanoTag
+	out.Tags = *(*map[string]string)(unsafe.Pointer(&in.Tags))
 	return nil
 }
 

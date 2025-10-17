@@ -25,6 +25,4 @@ profiles:
               tag: "r36"
             - labelValue: "xavier"
               tag: "beta"
-        # args:
-        #   orinTag: "r36"
-        #   nanoTag: "latest"
+

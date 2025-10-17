@@ -3,7 +3,7 @@ package architectureaware
 import (
 	"context"
 	"fmt"
-    "os"
+    //"os"
     "strings"
 	"encoding/json"
         metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

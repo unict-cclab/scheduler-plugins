@@ -16,9 +16,9 @@ import (
 	// config "github.com/unict-cclab/scheduler-plugins/apis/config"
 )
 
-const (
-	Name = "ArchitectureAware"
-)
+// const (
+// 	Name = "ArchitectureAware"
+// )
 
 // type ArchitectureAware struct {
 // 	handle framework.Handle
@@ -27,9 +27,14 @@ const (
 //     OrinTag string `json:"orinTag,omitempty"`
 //     NanoTag string `json:"nanoTag,omitempty"`
 // }
+const (
+	Name = "ArchitectureAware"
+	LabelKey = "nvidia.com/device-plugin.config" // chiave fissa della label sui nodi
+)
+
 type ArchitectureAware struct {
-	handle framework.Handle
-	tags   map[string]string // mappa label → tag
+	handle   framework.Handle
+	mappings map[string]string // labelValue → tag
 }
 
 var _ = framework.PreBindPlugin(&ArchitectureAware{})
@@ -50,27 +55,32 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context,  _ *framework.CycleSta
 		return framework.NewStatus(framework.Error, msg)
 	}
     //label to choose
-	deviceType := node.Labels["nvidia.com/device-plugin.config"]
-	klog.Infof("[ArchitectureAware] Node %s have label nvidia.com/device-plugin.config=%s", nodeName, deviceType)
+		deviceType := node.Labels[LabelKey]
+	klog.Infof("[ArchitectureAware] Node %s has label %s=%s", nodeName, LabelKey, deviceType)
 
-	var newImage string
-	var newTag string
-	switch deviceType {
-	case "orin":
-		// newImage = "192.168.1.252:480/jetson/multicomponent_service:r36"
-		newTag = os.Getenv("TAG_ORIN") // es. r36
-	case "nano":
-		// newImage = "192.168.1.252:480/jetson/multicomponent_service:latest"
-		newTag = os.Getenv("TAG_NANO") // es. latest
-	default:
-		klog.Warningf("[ArchitectureAware] Node %s without valid label (%s), Image not modified", nodeName, deviceType)
+	newTag, ok := pl.mappings[deviceType]
+	if !ok || newTag == "" {
+		klog.Warningf("[ArchitectureAware] No tag mapping found for device type %q", deviceType)
 		return framework.NewStatus(framework.Success, "")
 	}
+	var newImage string
+	//var newTag string
+	// switch deviceType {
+	// case "orin":
+	// 	// newImage = "192.168.1.252:480/jetson/multicomponent_service:r36"
+	// 	newTag = os.Getenv("TAG_ORIN") // es. r36
+	// case "nano":
+	// 	// newImage = "192.168.1.252:480/jetson/multicomponent_service:latest"
+	// 	newTag = os.Getenv("TAG_NANO") // es. latest
+	// default:
+	// 	klog.Warningf("[ArchitectureAware] Node %s without valid label (%s), Image not modified", nodeName, deviceType)
+	// 	return framework.NewStatus(framework.Success, "")
+	// }
 
-    if newTag == "" {
-        klog.Warningf("[ArchitectureAware] No tag found for device type %s", deviceType)
-        return framework.NewStatus(framework.Success, "")
-    }
+    // if newTag == "" {
+    //     klog.Warningf("[ArchitectureAware] No tag found for device type %s", deviceType)
+    //     return framework.NewStatus(framework.Success, "")
+    // }
 	// podCopy := pod.DeepCopy()
 	// updated := false
 	var containerIndex int = -1
@@ -140,13 +150,24 @@ func New(_ context.Context, obj runtime.Object, handle framework.Handle) (framew
     //     handle: handle,
     // }
 
-	pl := &ArchitectureAware{
-		handle: handle,
-		tags:   args.Tags,
+	// Trasforma la lista in una mappa
+	mappings := make(map[string]string)
+	for _, m := range args.Mappings {
+		if m.LabelValue != "" && m.Tag != "" {
+			mappings[m.LabelValue] = m.Tag
+		}
 	}
+
+	pl := &ArchitectureAware{
+		handle:   handle,
+		mappings: mappings,
+	}
+
+	klog.Infof("[ArchitectureAware] Loaded mappings: %+v", mappings)
+	return pl, nil
     //os.Setenv("TAG_ORIN", args.OrinTag)
     //os.Setenv("TAG_NANO", args.NanoTag)
 
-    return pl, nil
+    //return pl, nil
 }
 

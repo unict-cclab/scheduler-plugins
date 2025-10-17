@@ -27,9 +27,16 @@ import (
 type ArchitectureAwareArgs struct {
     metav1.TypeMeta `json:",inline"`
 
-	Tags map[string]string `json:"tags,omitempty"`
+	// Lista di mapping tra valore della label e tag dell'immagine
+	Mappings []DeviceMapping `json:"mappings,omitempty"`
     // OrinTag string `json:"orinTag,omitempty"`
     // NanoTag string `json:"nanoTag,omitempty"`
+}
+
+// Singolo mapping label → tag
+type DeviceMapping struct {
+	LabelValue string `json:"labelValue,omitempty"`
+	Tag        string `json:"tag,omitempty"`
 }
 
 

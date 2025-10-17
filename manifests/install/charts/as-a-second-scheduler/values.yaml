@@ -34,8 +34,13 @@ plugins:
 pluginConfig:
   - name: ArchitectureAware
     args:
-      orinTag: "r36"
-      nanoTag: "latest"
+      mappings:
+        - labelValue: "nano"
+          tag: "latest"
+        - labelValue: "orin"
+          tag: "r36"
+        - labelValue: "xavier"
+          tag: "beta"
 
 #pluginConfig:
 #- name: Coscheduling

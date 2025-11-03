@@ -21,6 +21,21 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	schedulerconfigv1 "k8s.io/kube-scheduler/config/v1"
 )
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type QoSAwareArgs struct {
+    metav1.TypeMeta `json:",inline"`
+
+	// Lista di mapping tra valore della label e factor del dispostivo
+	Mappings []DeviceMapping `json:"mappings,omitempty"`
+
+}
+
+// Singolo mapping label → factor
+type DeviceMapping struct {
+	LabelValue string `json:"labelValue,omitempty"`
+	Factor       string `json:"tag,omitempty"`
+}
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 

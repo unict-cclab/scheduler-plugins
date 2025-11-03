@@ -16,7 +16,6 @@ const (
 	LabelKey = "nvidia.com/device-plugin.config" // chiave fissa della label sui nodi
 )
 
-
 type QoSAware struct {
 	handle framework.Handle
 	mappings map[string]string // labelValue → factor

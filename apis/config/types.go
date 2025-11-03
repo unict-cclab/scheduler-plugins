@@ -27,12 +27,12 @@ type QoSAwareArgs struct {
     metav1.TypeMeta `json:",inline"`
 
 	// Lista di mapping tra valore della label e factor del dispostivo
-	Mappings []DeviceMapping `json:"mappings,omitempty"`
+	Mappings []DeviceFactoreMapping `json:"mappings,omitempty"`
 
 }
 
 // Singolo mapping label → factor
-type DeviceMapping struct {
+type DeviceFactoreMapping struct {
 	LabelValue string `json:"labelValue,omitempty"`
 	Factor       string `json:"tag,omitempty"`
 }

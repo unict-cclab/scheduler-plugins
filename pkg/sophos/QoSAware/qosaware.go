@@ -181,13 +181,39 @@ func New(_ context.Context, obj runtime.Object, handle framework.Handle) (framew
 }
 
 
-// --- Stub functions ---
-// TO_DO Per metriche prometheus
 func getThroughputMetric(p v1.Pod) int64 {
-	// TODO: leggi metriche RPS da Prometheus o altro sistema
-	return 0
-}
+    
+    // label : nodo, pipeline_id, step_id, pod_name
+    query := fmt.Sprintf(
+        `rate(http_requests_total{pod="%s"}[1m])`,
+        p.Name,
+    )
 
+    resp, err := http.Get(prometheusURL + "?query=" + url.QueryEscape(query))
+    if err != nil {
+        fmt.Println("Errore Prometheus:", err)
+        return 0
+    }
+    defer resp.Body.Close()
+
+    body, _ := ioutil.ReadAll(resp.Body)
+    var result map[string]interface{}
+    if err := json.Unmarshal(body, &result); err != nil {
+        fmt.Println("Errore parsing JSON:", err)
+        return 0
+    }
+
+    // Estraggo il valore del primo risultato
+    data := result["data"].(map[string]interface{})
+    results := data["result"].([]interface{})
+    if len(results) == 0 {
+        return 0
+    }
+    value := results[0].(map[string]interface{})["value"].([]interface{})[1].(string)
+    throughput, _ := strconv.ParseFloat(value, 64)
+
+    return int64(throughput)
+}
 
 func estimateNodeMaxThroughput(nodeName string) int64 {
     // fallback statico

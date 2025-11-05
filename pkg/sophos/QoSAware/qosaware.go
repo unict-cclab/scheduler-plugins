@@ -4,6 +4,10 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"net/http"
+	"time"
+	"io"
+	"encoding/json"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -14,6 +18,7 @@ import (
 const (
 	Name = "QoSAware"
 	LabelKey = "nvidia.com/device-plugin.config" // chiave fissa della label sui nodi
+	prometheusURL = "http://prometheus-stack-kube-prom-prometheus.observability.svc.cluster.local:9090/api/v1/query"
 )
 
 type QoSAware struct {
@@ -30,7 +35,7 @@ func (pl *QoSAware) Name() string {
 }
 
 // Score calcola il punteggio del nodo per il pod considerando:
-// - slice GPU libere
+// - shared-GPU libere
 // - performance del nodo
 // - PriorityClass del pod
 func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.Pod, nodeName string) (int64, *framework.Status) {
@@ -94,7 +99,6 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	}
 
 	// Fattore di performance del nodo
-	//label to choose
 	deviceType := node.Labels[LabelKey]
 	perf := 1.0
 	if pf, ok := pl.mappings[deviceType]; ok {
@@ -184,10 +188,57 @@ func getThroughputMetric(p v1.Pod) int64 {
 	return 0
 }
 
+
 func estimateNodeMaxThroughput(nodeName string) int64 {
-	// TODO: valori empirici o basati sul tipo di nodo
-	if nodeName == "jetsonorigin" {
-		return 800 // esempio
-	}
-	return 200 // esempio Nano
+    // fallback statico
+    staticMax := map[string]int64{
+        "origin": 800,
+        "nano": 200,
+
+    }
+	deviceType := node.Labels[LabelKey]
+
+
+    val, ok := queryPrometheusForThroughput(nodeName)
+    if ok {
+        return val
+    }
+    return staticMax[deviceType]
+}
+
+func queryPrometheusForThroughput(nodeName string) (int64, bool) {
+    q := fmt.Sprintf("avg_over_time(http_requests_total{node=\"%s\"}[1m])", nodeName)
+    req, _ := http.NewRequest("GET", prometheusURL+"?query="+q, nil)
+    ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+    defer cancel()
+    req = req.WithContext(ctx)
+
+    resp, err := http.DefaultClient.Do(req)
+    if err != nil {
+        return 0, false
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+    var result struct {
+        Data struct {
+            Result []struct {
+                Value [2]interface{} `json:"value"`
+            } `json:"result"`
+        } `json:"data"`
+    }
+    if err := json.Unmarshal(body, &result); err != nil {
+        return 0, false
+    }
+
+    if len(result.Data.Result) == 0 {
+        return 0, false
+    }
+
+    valStr, ok := result.Data.Result[0].Value[1].(string)
+    if !ok {
+        return 0, false
+    }
+    valFloat, _ := strconv.ParseFloat(valStr, 64)
+    return int64(valFloat), true
 }

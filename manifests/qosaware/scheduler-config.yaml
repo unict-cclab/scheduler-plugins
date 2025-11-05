@@ -22,6 +22,7 @@ profiles:
             - labelValue: "nano"
               factor:  1.0
             - labelValue: "orin"
-              factor: 3.0
+              factor: 4.0
             - labelValue: "xavier"
               factor: 2.0
+            #Calcolate con CUDA samples matrixMul, da verificare saturando nodo con pods gpu

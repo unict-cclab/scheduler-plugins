@@ -38,7 +38,7 @@ import (
 	"sigs.k8s.io/scheduler-plugins/pkg/sophos/networksloaware"
         "sigs.k8s.io/scheduler-plugins/pkg/sophos/GpuAware"
 		"sigs.k8s.io/scheduler-plugins/pkg/sophos/ArchitectureAware"
-		"sigs.k8s.io/scheduler-plugins/pkg/sophos/QosAware"
+		"sigs.k8s.io/scheduler-plugins/pkg/sophos/QoSAware"
 	"sigs.k8s.io/scheduler-plugins/pkg/sysched"
 	"sigs.k8s.io/scheduler-plugins/pkg/trimaran/loadvariationriskbalancing"
 	"sigs.k8s.io/scheduler-plugins/pkg/trimaran/lowriskovercommitment"

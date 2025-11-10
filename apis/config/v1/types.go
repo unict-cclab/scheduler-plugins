@@ -34,7 +34,7 @@ type QoSAwareArgs struct {
 // Singolo mapping label → factor
 type DeviceFactoreMapping struct {
 	LabelValue string `json:"labelValue,omitempty"`
-	Factor       string `json:"factor,omitempty"`
+	Factor       float64 `json:"factor,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

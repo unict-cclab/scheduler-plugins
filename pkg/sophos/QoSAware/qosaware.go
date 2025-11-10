@@ -17,7 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/scheduler-plugins/apis/config"
 )
 
@@ -115,9 +114,7 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	}
 	perf := 1.0
 	if pf, ok := pl.mappings[deviceType]; ok {
-		if val, err := strconv.ParseFloat(pf, 64); err == nil {
-			perf = val
-		}
+		perf = val
 	}
 
 	// Score base
@@ -181,7 +178,7 @@ func New(_ context.Context, obj runtime.Object, handle framework.Handle) (framew
         return nil, fmt.Errorf("want args to be of type QoSAwareArgs, got %T", obj)
     }
 
-
+	
 	// Trasforma la lista in una mappa
 	mappings := make(map[string]float64)
 	for _, m := range args.Mappings {

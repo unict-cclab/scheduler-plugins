@@ -18,7 +18,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/scheduler-plugins/pkg/apis/config"
+	"sigs.k8s.io/scheduler-plugins/apis/config"
 )
 
 const (
@@ -115,7 +115,9 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	}
 	perf := 1.0
 	if pf, ok := pl.mappings[deviceType]; ok {
-		perf = pf
+		if val, err := strconv.ParseFloat(pf, 64); err == nil {
+			perf = val
+		}
 	}
 
 	// Score base

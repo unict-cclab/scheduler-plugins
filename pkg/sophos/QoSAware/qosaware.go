@@ -1,18 +1,23 @@
 package qosaware
 
+
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"math"
 	"net/http"
+	"net/url"
+	"strconv"
 	"time"
-	"io"
-	"encoding/json"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
+	"sigs.k8s.io/scheduler-plugins/pkg/apis/config"
 )
 
 const (
@@ -23,7 +28,7 @@ const (
 
 type QoSAware struct {
 	handle framework.Handle
-	mappings map[string]string // labelValue → factor
+	mappings map[string]float64// labelValue → factor
 
 }
 
@@ -45,7 +50,10 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	if err != nil {
 		return 0, framework.NewStatus(framework.Error, fmt.Sprintf("error getting node info: %v", err))
 	}
-
+	nodeObj := node.Node()
+	if nodeObj == nil {
+		return 0, framework.NewStatus(framework.Error, fmt.Sprintf("node object is nil for %q", nodeName))
+	}
 	pods, err := pl.handle.ClientSet().CoreV1().Pods(pod.Namespace).List(ctx, metav1.ListOptions{
 		FieldSelector: "spec.nodeName=" + nodeName,
 	})
@@ -75,7 +83,7 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	requestGpu := totalGpuRequested + podGpuRequest
 
 	// Capacità GPU del nodo
-	gpuCapacity, ok := node.Node().Status.Capacity["nvidia.com/gpu.shared"]
+	gpuCapacity, ok := nodeObj.Status.Capacity["nvidia.com/gpu.shared"]
 	if !ok || gpuCapacity.Value() == 0 {
 		return 0, framework.NewStatus(framework.Error, fmt.Sprintf("node %q has no GPU capacity", nodeName))
 	}
@@ -99,7 +107,11 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	}
 
 	// Fattore di performance del nodo
-	deviceType := node.Labels[LabelKey]
+		// Fattore di performance del nodo (from mappings)
+	deviceType := ""
+	if v, ok := nodeObj.Labels[LabelKey]; ok {
+		deviceType = v
+	}
 	perf := 1.0
 	if pf, ok := pl.mappings[deviceType]; ok {
 		perf = pf
@@ -110,10 +122,14 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 
 	// --- Optional: controllo dei pod sottoutilizzati ---
 	for _, p := range pods.Items {
-		throughputPerPod := getThroughputMetric(p) // funzione stub, da implementare con Prometheus
-		nodeMaxThroughput := estimateNodeMaxThroughput(nodeName)
+		throughputPerPod := getThroughputMetric(p) // funzione che interroga Prometheus
+		nodeMaxThroughput := estimateNodeMaxThroughput(nodeName, deviceType)
+		if len(pods.Items) == 0 {
+			continue
+		}
 		maxThroughputPerPod := nodeMaxThroughput / int64(len(pods.Items))
-		relocationScore := (maxThroughputPerPod - throughputPerPod) * int64(perf)
+		// relocationScore as int64 derived from float perf
+		relocationScore := int64(float64(maxThroughputPerPod-throughputPerPod) * perf)
 		if relocationScore > 0 {
 			klog.Infof("Pod %q on node %q is a candidate for rescheduling, relocationScore=%d", p.Name, nodeName, relocationScore)
 			// segnala per rescheduling (controller esterno o annotazioni)
@@ -164,7 +180,7 @@ func New(_ context.Context, obj runtime.Object, handle framework.Handle) (framew
 
 
 	// Trasforma la lista in una mappa
-	mappings := make(map[string]string)
+	mappings := make(map[string]float64)
 	for _, m := range args.Mappings {
 		if m.LabelValue != "" && m.Factor != "" {
 			mappings[m.LabelValue] = m.Factor
@@ -191,80 +207,110 @@ func getThroughputMetric(p v1.Pod) int64 {
 
     resp, err := http.Get(prometheusURL + "?query=" + url.QueryEscape(query))
     if err != nil {
-        fmt.Println("Errore Prometheus:", err)
+        klog.Infof("Errore Prometheus: %v", err)
         return 0
     }
     defer resp.Body.Close()
 
-    body, _ := ioutil.ReadAll(resp.Body)
-    var result map[string]interface{}
-    if err := json.Unmarshal(body, &result); err != nil {
-        fmt.Println("Errore parsing JSON:", err)
-        return 0
-    }
+    body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		klog.Infof("Errore lettura body Prometheus: %v", err)
+		return 0
+	}
 
     // Estraggo il valore del primo risultato
-    data := result["data"].(map[string]interface{})
-    results := data["result"].([]interface{})
-    if len(results) == 0 {
-        return 0
-    }
-    value := results[0].(map[string]interface{})["value"].([]interface{})[1].(string)
-    throughput, _ := strconv.ParseFloat(value, 64)
+    var result map[string]interface{}
+	if err := json.Unmarshal(body, &result); err != nil {
+		klog.Infof("Errore parsing JSON: %v", err)
+		return 0
+	}
 
-    return int64(throughput)
+
+    // Safely extract value
+	data, ok := result["data"].(map[string]interface{})
+	if !ok {
+		return 0
+	}
+	results, ok := data["result"].([]interface{})
+	if !ok || len(results) == 0 {
+		return 0
+	}
+	first, ok := results[0].(map[string]interface{})
+	if !ok {
+		return 0
+	}
+	valArr, ok := first["value"].([]interface{})
+	if !ok || len(valArr) < 2 {
+		return 0
+	}
+	valueStr, ok := valArr[1].(string)
+	if !ok {
+		return 0
+	}
+	throughputF, err := strconv.ParseFloat(valueStr, 64)
+	if err != nil {
+		return 0
+	}
+	return int64(throughputF)
 }
 
-func estimateNodeMaxThroughput(nodeName string) int64 {
-    // fallback statico
-    staticMax := map[string]int64{
-        "origin": 800,
-        "nano": 200,
+func estimateNodeMaxThroughput(nodeName, deviceType string) int64 {
+	// fallback statico
+	staticMax := map[string]int64{
+		"origin": 800,
+		"nano":   200,
+	}
 
-    }
-	deviceType := node.Labels[LabelKey]
-
-
-    val, ok := queryPrometheusForThroughput(nodeName)
-    if ok {
-        return val
-    }
-    return staticMax[deviceType]
+	val, ok := queryPrometheusForThroughput(nodeName)
+	if ok {
+		return val
+	}
+	if v, ok := staticMax[deviceType]; ok {
+		return v
+	}
+	// default fallback
+	return 100
 }
 
 func queryPrometheusForThroughput(nodeName string) (int64, bool) {
-    q := fmt.Sprintf("avg_over_time(http_requests_total{node=\"%s\"}[1m])", nodeName)
-    req, _ := http.NewRequest("GET", prometheusURL+"?query="+q, nil)
-    ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-    defer cancel()
-    req = req.WithContext(ctx)
+	q := fmt.Sprintf("avg_over_time(http_requests_total{node=\"%s\"}[1m])", nodeName)
+	req, _ := http.NewRequest("GET", prometheusURL+"?query="+url.QueryEscape(q), nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	req = req.WithContext(ctx)
 
-    resp, err := http.DefaultClient.Do(req)
-    if err != nil {
-        return 0, false
-    }
-    defer resp.Body.Close()
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return 0, false
+	}
+	defer resp.Body.Close()
 
-    body, _ := io.ReadAll(resp.Body)
-    var result struct {
-        Data struct {
-            Result []struct {
-                Value [2]interface{} `json:"value"`
-            } `json:"result"`
-        } `json:"data"`
-    }
-    if err := json.Unmarshal(body, &result); err != nil {
-        return 0, false
-    }
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, false
+	}
+	var result struct {
+		Data struct {
+			Result []struct {
+				Value [2]interface{} `json:"value"`
+			} `json:"result"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return 0, false
+	}
 
-    if len(result.Data.Result) == 0 {
-        return 0, false
-    }
+	if len(result.Data.Result) == 0 {
+		return 0, false
+	}
 
-    valStr, ok := result.Data.Result[0].Value[1].(string)
-    if !ok {
-        return 0, false
-    }
-    valFloat, _ := strconv.ParseFloat(valStr, 64)
-    return int64(valFloat), true
+	valStr, ok := result.Data.Result[0].Value[1].(string)
+	if !ok {
+		return 0, false
+	}
+	valFloat, err := strconv.ParseFloat(valStr, 64)
+	if err != nil {
+		return 0, false
+	}
+	return int64(valFloat), true
 }

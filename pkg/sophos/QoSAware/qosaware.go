@@ -114,7 +114,7 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	}
 	perf := 1.0
 	if pf, ok := pl.mappings[deviceType]; ok {
-		perf = val
+		perf = pf
 	}
 
 	// Score base
@@ -178,11 +178,11 @@ func New(_ context.Context, obj runtime.Object, handle framework.Handle) (framew
         return nil, fmt.Errorf("want args to be of type QoSAwareArgs, got %T", obj)
     }
 
-	
+
 	// Trasforma la lista in una mappa
 	mappings := make(map[string]float64)
 	for _, m := range args.Mappings {
-		if m.LabelValue != "" && m.Factor != "" {
+		if m.LabelValue != "" && m.Factor != None {
 			mappings[m.LabelValue] = m.Factor
 		}
 	}

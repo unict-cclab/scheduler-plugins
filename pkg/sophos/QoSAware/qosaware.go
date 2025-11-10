@@ -166,7 +166,7 @@ func New(_ context.Context, obj runtime.Object, handle framework.Handle) (framew
 	// Trasforma la lista in una mappa
 	mappings := make(map[string]string)
 	for _, m := range args.Mappings {
-		if m.LabelValue != "" && m. != "" {
+		if m.LabelValue != "" && m.Factor != "" {
 			mappings[m.LabelValue] = m.Factor
 		}
 	}

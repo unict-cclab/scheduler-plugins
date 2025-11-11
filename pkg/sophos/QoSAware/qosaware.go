@@ -182,7 +182,7 @@ func New(_ context.Context, obj runtime.Object, handle framework.Handle) (framew
 	// Trasforma la lista in una mappa
 	mappings := make(map[string]float64)
 	for _, m := range args.Mappings {
-		if m.LabelValue != "" && m.Factor != None {
+		if m.LabelValue != "" {
 			mappings[m.LabelValue] = m.Factor
 		}
 	}

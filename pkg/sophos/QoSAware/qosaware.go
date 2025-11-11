@@ -39,6 +39,14 @@ var _ = framework.ScoreExtensions(&QoSAware{})
 func (pl *QoSAware) Name() string {
 	return Name
 }
+var _ = framework.PreFilterPlugin(&QoSAware{})
+func (pl *QoSAware) PreFilter(ctx context.Context, state *framework.CycleState, pod *v1.Pod) (*framework.PreFilterResult, *framework.Status) {
+    return nil, framework.NewStatus(framework.Success, "")
+}
+
+func (pl *QoSAware) PreFilterExtensions() framework.PreFilterExtensions {
+    return nil
+}
 
 // Score calcola il punteggio del nodo per il pod considerando:
 // - shared-GPU libere

@@ -31,25 +31,25 @@ plugins:
 # Customize the enabled plugins' config.
 # Refer to the "pluginConfig" section of manifests/<plugin>/scheduler-config.yaml.
 # For example, for Coscheduling plugin, you want to customize the permit waiting timeout to 10 seconds:
-# pluginConfig:
-#   - name: ArchitectureAware
-#     args:
-#       mappings:
-#         - labelValue: "nano"
-#           tag: "latest"
-#         - labelValue: "orin"
-#           tag: "r36"
-#         - labelValue: "xavier"
-#           tag: "beta"
-#   - name: QoSAware
-#     args:
-#       mappings:
-#         - labelValue: "nano"
-#           factor: 1.0
-#         - labelValue: "orin"
-#           factor: 3.0
-#         - labelValue: "xavier"
-#           factor: 2.0
+pluginConfig:
+  - name: ArchitectureAware
+    args:
+      mappings:
+        - labelValue: "nano"
+          tag: "latest"
+        - labelValue: "orin"
+          tag: "r36"
+        - labelValue: "xavier"
+          tag: "beta"
+  - name: QoSAware
+    args:
+      mappings:
+        - labelValue: "nano"
+          factor: 1.0
+        - labelValue: "orin"
+          factor: 3.0
+        - labelValue: "xavier"
+          factor: 2.0
 
 #pluginConfig:
 #- name: Coscheduling

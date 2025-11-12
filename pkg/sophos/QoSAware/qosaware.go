@@ -34,7 +34,7 @@ type QoSAware struct {
 }
 
 var _ = framework.ScorePlugin(&QoSAware{})
-// var _ = framework.ScoreExtensions(&QoSAware{})
+var _ = framework.ScoreExtensions(&QoSAware{})
 
 func (pl *QoSAware) Name() string {
 	return Name
@@ -124,7 +124,7 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 			break
 		}
 	}
-	nodeGpuUtil= getNodeGPUUtil(nodeIP)
+	nodeGpuUtil, _ := getNodeGPUUtil(nodeIP)
 	if nodeGpuUtil < 0 || math.IsNaN(nodeGpuUtil) {
 		nodeGpuUtil = 0
 	}
@@ -163,9 +163,9 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	return score, nil
 }
 
-// func (pl *QoSAware) ScoreExtensions() framework.ScoreExtensions {
-// 	return pl
-// }
+func (pl *QoSAware) ScoreExtensions() framework.ScoreExtensions {
+	return pl
+}
 
 func (pl *QoSAware) NormalizeScore(_ context.Context, _ *framework.CycleState, pod *v1.Pod, scores framework.NodeScoreList) *framework.Status {
 	var highest int64 = -math.MaxInt64
@@ -364,4 +364,49 @@ func estimatePodGPUUtil(pod v1.Pod, nodeName, nodeIP string) (float64, error) {
     if err != nil { return 0, err }
 
     return nodeGPU * (podRPS / totalRPS), nil
+}
+func queryPrometheus(query string) (float64, error) {
+    req, _ := http.NewRequest("GET", prometheusURL+"?query="+url.QueryEscape(query), nil)
+    ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+    defer cancel()
+    req = req.WithContext(ctx)
+
+    resp, err := http.DefaultClient.Do(req)
+    if err != nil {
+        return 0, err
+    }
+    defer resp.Body.Close()
+
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return 0, err
+    }
+
+    var result struct {
+        Data struct {
+            Result []struct {
+                Value [2]interface{} `json:"value"`
+            } `json:"result"`
+        } `json:"data"`
+    }
+
+    if err := json.Unmarshal(body, &result); err != nil {
+        return 0, err
+    }
+
+    if len(result.Data.Result) == 0 {
+        return 0, fmt.Errorf("no results for query %s", query)
+    }
+
+    valStr, ok := result.Data.Result[0].Value[1].(string)
+    if !ok {
+        return 0, fmt.Errorf("invalid value format for query %s", query)
+    }
+
+    valFloat, err := strconv.ParseFloat(valStr, 64)
+    if err != nil {
+        return 0, err
+    }
+
+    return valFloat, nil
 }

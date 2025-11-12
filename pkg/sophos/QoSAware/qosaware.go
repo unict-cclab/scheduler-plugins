@@ -93,7 +93,7 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	if requestGpu > gpuCapacity.Value() {
 		return 0, nil
 	}
-	totalSlices _= gpuCapacity.Value() 
+	totalSlices := gpuCapacity.Value()
 	//freeSlices := gpuCapacity.Value() - totalGpuRequested
 
 	// Fattore di priorità del pod

@@ -93,8 +93,8 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	if requestGpu > gpuCapacity.Value() {
 		return 0, nil
 	}
-
-	freeSlices := gpuCapacity.Value() - totalGpuRequested
+	totalSlices _= gpuCapacity.Value() 
+	//freeSlices := gpuCapacity.Value() - totalGpuRequested
 
 	// Fattore di priorità del pod
 	priorityFactor := map[string]float64{
@@ -130,7 +130,17 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	}
 
 	// Score base
-	score := int64(factor * perf * float64(freeSlices) * (1 - nodeGpuUtil/100)/ (1 + 0.3*float64(len(pods.Items))))
+	podPenalty := math.Exp(0.25 * float64(len(pods.Items))) 
+	sliceUtil := float64(requestGpu) / float64(totalSlices)
+	if sliceUtil > 1 {
+		sliceUtil = 1 // evita overflow se la richiesta eccede
+	}
+
+	sliceFactor := 1 - sliceUtil
+	if sliceFactor < 0.05 {
+		sliceFactor = 0.05 // clamp minimo per evitare score = 0
+	}
+	score := int64(factor * perf * sliceFactor * (1 - nodeGpuUtil/100)/ (1 + podPenalty))
 	// ---  controllo dei pod sottoutilizzati --- da usare per possibile rescheduling
 	gamma := 0.5
 	for _, p := range pods.Items {

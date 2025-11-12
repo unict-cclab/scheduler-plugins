@@ -10,7 +10,7 @@ clientConnection:
 profiles:
   - schedulerName: scheduler-plugins-scheduler
     plugins:
-      score:
+      multiPoint:
         enabled:
           - name: QoSAware
         disabled:

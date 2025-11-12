@@ -34,18 +34,10 @@ type QoSAware struct {
 }
 
 var _ = framework.ScorePlugin(&QoSAware{})
-var _ = framework.ScoreExtensions(&QoSAware{})
+// var _ = framework.ScoreExtensions(&QoSAware{})
 
 func (pl *QoSAware) Name() string {
 	return Name
-}
-var _ = framework.PreFilterPlugin(&QoSAware{})
-func (pl *QoSAware) PreFilter(ctx context.Context, state *framework.CycleState, pod *v1.Pod) (*framework.PreFilterResult, *framework.Status) {
-    return nil, framework.NewStatus(framework.Success, "")
-}
-
-func (pl *QoSAware) PreFilterExtensions() framework.PreFilterExtensions {
-    return nil
 }
 
 // Score calcola il punteggio del nodo per il pod considerando:
@@ -148,9 +140,9 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	return score, nil
 }
 
-func (pl *QoSAware) ScoreExtensions() framework.ScoreExtensions {
-	return pl
-}
+// func (pl *QoSAware) ScoreExtensions() framework.ScoreExtensions {
+// 	return pl
+// }
 
 func (pl *QoSAware) NormalizeScore(_ context.Context, _ *framework.CycleState, pod *v1.Pod, scores framework.NodeScoreList) *framework.Status {
 	var highest int64 = -math.MaxInt64

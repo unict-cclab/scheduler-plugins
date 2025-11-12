@@ -117,23 +117,46 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	if pf, ok := pl.mappings[deviceType]; ok {
 		perf = pf
 	}
+	var nodeIP string
+	for _, addr := range nodeObj.Status.Addresses {
+		if addr.Type == v1.NodeInternalIP {
+			nodeIP = addr.Address
+			break
+		}
+	}
+	nodeGpuUtil= getNodeGPUUtil(nodeIP)
+	if nodeGpuUtil < 0 || math.IsNaN(nodeGpuUtil) {
+		nodeGpuUtil = 0
+	}
 
 	// Score base
-	score := int64(factor * perf * float64(freeSlices) / (1 + float64(len(pods.Items))))
-
-	// --- Optional: controllo dei pod sottoutilizzati ---
+	score := int64(factor * perf * float64(freeSlices) * (1 - nodeGpuUtil/100)/ (1 + 0.3*float64(len(pods.Items))))
+	// ---  controllo dei pod sottoutilizzati --- da usare per possibile rescheduling
+	gamma := 0.5
 	for _, p := range pods.Items {
-		throughputPerPod := getThroughputMetric(p) // funzione che interroga Prometheus
+		throughputPerPod := getThroughputMetric(p) // es. RPS medio negli ultimi 60s
 		nodeMaxThroughput := estimateNodeMaxThroughput(nodeName, deviceType)
-		if len(pods.Items) == 0 {
+		estGpuUtil, _ := estimatePodGPUUtil(p, nodeName, nodeIP)
+		utilFactor := 1.0 + gamma * (estGpuUtil / 100.0)
+
+		// ignora pod appena creati (<60s)
+		age := time.Since(p.CreationTimestamp.Time)
+		if age < 60*time.Second {
 			continue
 		}
-		maxThroughputPerPod := nodeMaxThroughput / int64(len(pods.Items))
-		// relocationScore as int64 derived from float perf
-		relocationScore := int64(float64(maxThroughputPerPod-throughputPerPod) * perf)
-		if relocationScore > 0 {
-			klog.Infof("Pod %q on node %q is a candidate for rescheduling, relocationScore=%d", p.Name, nodeName, relocationScore)
-			// segnala per rescheduling (controller esterno o annotazioni)
+
+		// evita divisione per zero e considera il nuovo pod in ingresso
+		totalPods := int64(len(pods.Items) + 1)
+		maxThroughputPerPod := nodeMaxThroughput / totalPods
+
+		// considera anche un margine per variazioni normali di traffico
+		if throughputPerPod < (maxThroughputPerPod * 80 / 100) {
+			relocationScore := int64(float64(maxThroughputPerPod-throughputPerPod) * perf * utilFactor)
+			if relocationScore > 0 {
+				klog.Infof("Pod %q on node %q is a candidate for rescheduling (throughput=%d < expected=%d, relocationScore=%d)",
+					p.Name, nodeName, throughputPerPod, maxThroughputPerPod, relocationScore)
+				// TODO: segnalazione per rescheduling
+			}
 		}
 	}
 
@@ -258,7 +281,7 @@ func getThroughputMetric(p v1.Pod) int64 {
 func estimateNodeMaxThroughput(nodeName, deviceType string) int64 {
 	// fallback statico
 	staticMax := map[string]int64{
-		"origin": 800,
+		"orin": 800,
 		"nano":   200,
 	}
 
@@ -314,4 +337,31 @@ func queryPrometheusForThroughput(nodeName string) (int64, bool) {
 		return 0, false
 	}
 	return int64(valFloat), true
+}
+func getNodeGPUUtil(nodeIP string) (float64, error) {
+    query := fmt.Sprintf(`avg_over_time(gpu_usage_percentage{job="jetson-exporter", instance=~"%s.*"}[60s])`, nodeIP)
+    return queryPrometheus(query)
+}
+
+func getPodRPS(pod v1.Pod) (float64, error) {
+    query := fmt.Sprintf(`sum(rate(http_requests_total{pod="%s"}[60s]))`, pod.Name)
+    return queryPrometheus(query)
+}
+
+func getNodeTotalRPS(nodeName string) (float64, error) {
+    query := fmt.Sprintf(`sum(rate(http_requests_total{node="%s"}[60s]))`, nodeName)
+    return queryPrometheus(query)
+}
+
+func estimatePodGPUUtil(pod v1.Pod, nodeName, nodeIP string) (float64, error) {
+    podRPS, err := getPodRPS(pod)
+    if err != nil { return 0, err }
+
+    totalRPS, err := getNodeTotalRPS(nodeName)
+    if err != nil || totalRPS == 0 { return 0, nil }
+
+    nodeGPU, err := getNodeGPUUtil(nodeIP)
+    if err != nil { return 0, err }
+
+    return nodeGPU * (podRPS / totalRPS), nil
 }

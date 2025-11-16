@@ -140,7 +140,10 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	if sliceFactor < 0.05 {
 		sliceFactor = 0.05 // clamp minimo per evitare score = 0
 	}
-	score := int64(factor * perf * sliceFactor * (1 - nodeGpuUtil/100)/ (1 + podPenalty))
+	gpuBias := 1 + math.Log2(float64(podGpuRequest)) * (perf - 1)
+
+	score := int64(factor * (perf * gpuBias) * sliceFactor * (1 - nodeGpuUtil/100)/ (1 + podPenalty))
+
 	// ---  controllo dei pod sottoutilizzati --- da usare per possibile rescheduling
 	gamma := 0.5
 	for _, p := range pods.Items {

@@ -94,7 +94,7 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 		return 0, nil
 	}
 	totalSlices := gpuCapacity.Value()
-	//freeSlices := gpuCapacity.Value() - totalGpuRequested
+	freeSlices := gpuCapacity.Value() - totalGpuRequested
 
 	// Fattore di priorità del pod
 	priorityFactor := map[string]float64{
@@ -124,6 +124,19 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 			break
 		}
 	}
+	fit := float64(freeSlices) / float64(podGpuRequest)
+	if fit < 0.1 {
+		fit = 0.1
+	}
+
+	// Fit adjustment leggero (range 0.8 – 1.3)
+	fitAdj := 1 + 0.2*(fit-1)
+	if fitAdj < 0.8 {
+		fitAdj = 0.8
+	}
+	if fitAdj > 1.3 {
+		fitAdj = 1.3
+	}
 	nodeGpuUtil, _ := getNodeGPUUtil(nodeIP)
 	if nodeGpuUtil < 0 || math.IsNaN(nodeGpuUtil) {
 		nodeGpuUtil = 0
@@ -135,6 +148,10 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	if sliceUtil > 1 {
 		sliceUtil = 1 // evita overflow se la richiesta eccede
 	}
+	fragmentPenalty := float64(freeSlices) / float64(freeSlices+int64(len(pods.Items))) //indica quanto è frammentata la GPU
+	if fragmentPenalty < 0.3 {
+		fragmentPenalty = 0.3
+	}
 
 	sliceFactor := 1 - sliceUtil
 	if sliceFactor < 0.05 {
@@ -142,36 +159,36 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	}
 	gpuBias := 1 + math.Log2(float64(podGpuRequest)) * (perf - 1)
 
-	score := int64(factor * (perf * gpuBias) * sliceFactor * (1 - nodeGpuUtil/100)/ (1 + podPenalty))
+	score := int64((perf * gpuBias) * sliceFactor * fitAdj * fragmentPenalty * (1 - nodeGpuUtil/100)/ (1 + podPenalty))
 
 	// ---  controllo dei pod sottoutilizzati --- da usare per possibile rescheduling
-	gamma := 0.5
-	for _, p := range pods.Items {
-		throughputPerPod := getThroughputMetric(p) // es. RPS medio negli ultimi 60s
-		nodeMaxThroughput := estimateNodeMaxThroughput(nodeName, deviceType)
-		estGpuUtil, _ := estimatePodGPUUtil(p, nodeName, nodeIP)
-		utilFactor := 1.0 + gamma * (estGpuUtil / 100.0)
+	// gamma := 0.5
+	// for _, p := range pods.Items {
+	// 	throughputPerPod := getThroughputMetric(p) // es. RPS medio negli ultimi 60s
+	// 	nodeMaxThroughput := estimateNodeMaxThroughput(nodeName, deviceType)
+	// 	estGpuUtil, _ := estimatePodGPUUtil(p, nodeName, nodeIP)
+	// 	utilFactor := 1.0 + gamma * (estGpuUtil / 100.0)
 
-		// ignora pod appena creati (<60s)
-		age := time.Since(p.CreationTimestamp.Time)
-		if age < 60*time.Second {
-			continue
-		}
+	// 	// ignora pod appena creati (<60s)
+	// 	age := time.Since(p.CreationTimestamp.Time)
+	// 	if age < 60*time.Second {
+	// 		continue
+	// 	}
 
-		// evita divisione per zero e considera il nuovo pod in ingresso
-		totalPods := int64(len(pods.Items) + 1)
-		maxThroughputPerPod := nodeMaxThroughput / totalPods
+	// 	// evita divisione per zero e considera il nuovo pod in ingresso
+	// 	totalPods := int64(len(pods.Items) + 1)
+	// 	maxThroughputPerPod := nodeMaxThroughput / totalPods
 
-		// considera anche un margine per variazioni normali di traffico
-		if throughputPerPod < (maxThroughputPerPod * 80 / 100) {
-			relocationScore := int64(float64(maxThroughputPerPod-throughputPerPod) * perf * utilFactor)
-			if relocationScore > 0 {
-				klog.Infof("Pod %q on node %q is a candidate for rescheduling (throughput=%d < expected=%d, relocationScore=%d)",
-					p.Name, nodeName, throughputPerPod, maxThroughputPerPod, relocationScore)
-				// TODO: segnalazione per rescheduling
-			}
-		}
-	}
+	// 	// considera anche un margine per variazioni normali di traffico
+	// 	if throughputPerPod < (maxThroughputPerPod * 80 / 100) {
+	// 		relocationScore := int64(float64(maxThroughputPerPod-throughputPerPod) * perf * utilFactor)
+	// 		if relocationScore > 0 {
+	// 			klog.Infof("Pod %q on node %q is a candidate for rescheduling (throughput=%d < expected=%d, relocationScore=%d)",
+	// 				p.Name, nodeName, throughputPerPod, maxThroughputPerPod, relocationScore)
+	// 			// TODO: segnalazione per rescheduling
+	// 		}
+	// 	}
+	// }
 
 	return score, nil
 }

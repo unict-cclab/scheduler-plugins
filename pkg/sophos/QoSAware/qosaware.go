@@ -97,15 +97,15 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	freeSlices := gpuCapacity.Value() - totalGpuRequested
 
 	// Fattore di priorità del pod
-	priorityFactor := map[string]float64{
-		"low-qos":    1.0,
-		"normal-qos": 1.5,
-		"high-qos":   2.0,
-	}
-	factor := 1.0
-	if f, ok := priorityFactor[pod.Spec.PriorityClassName]; ok {
-		factor = f
-	}
+	// priorityFactor := map[string]float64{
+	// 	"low-qos":    1.0,
+	// 	"normal-qos": 1.5,
+	// 	"high-qos":   2.0,
+	// }
+	// factor := 1.0
+	// if f, ok := priorityFactor[pod.Spec.PriorityClassName]; ok {
+	// 	factor = f
+	// }
 
 	// Fattore di performance del nodo
 		// Fattore di performance del nodo (from mappings)

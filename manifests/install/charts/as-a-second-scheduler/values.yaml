@@ -4,7 +4,7 @@
 
 scheduler:
   name: scheduler-plugins-scheduler
-  image: ghcr.io/unict-cclab/kube-scheduler:sophos-v0.1.6
+  image: ghcr.io/unict-cclab/kube-scheduler:sophos-v0.1.7
   replicaCount: 1
   leaderElect: false
   nodeSelector:

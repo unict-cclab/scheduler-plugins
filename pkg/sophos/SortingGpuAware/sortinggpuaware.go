@@ -9,15 +9,16 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-const SortingName = "SortingGpuAware"
-
+const (
+	Name = "SortingGpuAware"
+)
 // SortingGpuAware implements QueueSortPlugin for GPU-first scheduling.
 type SortingGpuAware struct{}
 
 var _ framework.QueueSortPlugin = &SortingGpuAware{}
 
 func (pl *SortingGpuAware) Name() string {
-	return SortingName
+	return Name
 }
 
 // Less determines the order of pods in the scheduling queue.

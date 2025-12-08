@@ -1,0 +1,17 @@
+apiVersion: kubescheduler.config.k8s.io/v1
+kind: KubeSchedulerConfiguration
+
+leaderElection:
+  leaderElect: false
+
+clientConnection:
+  kubeconfig: ""
+
+profiles:
+  - schedulerName: scheduler-plugins-scheduler
+    plugins:
+      queueSort:
+        enabled:
+        - name: SortingGpuAware
+        disabled:
+        - name: "*"

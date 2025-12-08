@@ -35,24 +35,41 @@ func (pl *SortingGpuAware) Less(pInfo1, pInfo2 *framework.QueuedPodInfo) bool {
 	g1 := gpuSlicesRequested(p1)
 	g2 := gpuSlicesRequested(p2)
 
+	// if g1 != g2 {
+	// 	return g1 > g2
+	// }
 	if g1 != g2 {
-		return g1 > g2
+		result := g1 > g2
+		klog.Infof("[SortingGpuAware] Compare GPU: %s(gpu=%d) vs %s(gpu=%d) → %v",
+			p1.Name, g1, p2.Name, g2, result)
+		return result
 	}
-
 	//
 	// 2) Compare PriorityClass factor
 	//
 	f1 := priorityFactorFromClass(p1)
 	f2 := priorityFactorFromClass(p2)
 
+	// if f1 != f2 {
+	// 	return f1 > f2
+	// }
 	if f1 != f2 {
-		return f1 > f2
+		result := f1 > f2
+		klog.Infof("[SortingGpuAware] Compare Priority: %s(prio=%.1f) vs %s(prio=%.1f) → %v",
+			p1.Name, f1, p2.Name, f2, result)
+		return result
 	}
 
 	//
 	// 3) FIFO fallback: older pod gets priority
 	//
-	return p1.CreationTimestamp.Before(&p2.CreationTimestamp)
+	result := p1.CreationTimestamp.Before(&p2.CreationTimestamp)
+	klog.Infof("[SortingGpuAware] FIFO: %s(ts=%s) vs %s(ts=%s) → %v",
+		p1.Name, p1.CreationTimestamp.String(),
+		p2.Name, p2.CreationTimestamp.String(),
+		result)
+
+	return result
 }
 
 //

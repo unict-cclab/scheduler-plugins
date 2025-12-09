@@ -134,13 +134,14 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 		return 0, nil
 	}
 
+	// GPU totali richieste se scheduliamo il pod
+	requestGpu := totalGpuRequested + podGpuRequest
+	
 	// Se il pod non può entrare, score = 0
 	if requestGpu > gpuCapacity.Value() {
 		return 0, nil
 	}
-	// GPU totali richieste se scheduliamo il pod
-	requestGpu := totalGpuRequested + podGpuRequest
-	
+
 	totalSlices := gpuCapacity.Value()
 	freeSlices := gpuCapacity.Value() - totalGpuRequested
 

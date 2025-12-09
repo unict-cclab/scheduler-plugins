@@ -80,33 +80,6 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 		}
 	}
 
-	// GPU totali richieste se scheduliamo il pod
-	requestGpu := totalGpuRequested + podGpuRequest
-
-	// Capacità GPU del nodo
-	gpuCapacity, ok := nodeObj.Status.Capacity["nvidia.com/gpu.shared"]
-	if !ok || gpuCapacity.Value() == 0 {
-		return 0, nil
-	}
-
-	// Se il pod non può entrare, score = 0
-	if requestGpu > gpuCapacity.Value() {
-		return 0, nil
-	}
-	totalSlices := gpuCapacity.Value()
-	freeSlices := gpuCapacity.Value() - totalGpuRequested
-
-	// Fattore di priorità del pod
-	// priorityFactor := map[string]float64{
-	// 	"low-qos":    1.0,
-	// 	"normal-qos": 1.5,
-	// 	"high-qos":   2.0,
-	// }
-	// factor := 1.0
-	// if f, ok := priorityFactor[pod.Spec.PriorityClassName]; ok {
-	// 	factor = f
-	// }
-
 	// Fattore di performance del nodo
 		// Fattore di performance del nodo (from mappings)
 	deviceType := ""
@@ -124,6 +97,64 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 			break
 		}
 	}
+	nodeGpuUtil, _ := getNodeGPUUtil(nodeIP)
+	if nodeGpuUtil < 0 || math.IsNaN(nodeGpuUtil) {
+		nodeGpuUtil = 0
+	}
+		podPenalty := math.Exp(0.25 * float64(len(pods.Items))) 
+
+
+    //
+    // 1) CASO: POD che non richiede GPU
+    //
+	if podGpuRequest == 0 {
+        // Nodo meno affollato e meno carico di GPU → score più alto
+        utilFactor := 1 - nodeGpuUtil/100.0
+        if utilFactor < 0.1 {
+            utilFactor = 0.1
+        }
+
+        base := perf * utilFactor / podPenalty
+        if base < 0 {
+            base = 0
+        }
+
+        score := int64(base * 100) // scala 
+        return score, nil
+    }
+	//
+    // 2) CASO: POD richiedente GPU
+    //
+
+	
+
+	// Capacità GPU del nodo
+	gpuCapacity, ok := nodeObj.Status.Capacity["nvidia.com/gpu.shared"]
+	if !ok || gpuCapacity.Value() == 0 {
+		return 0, nil
+	}
+
+	// Se il pod non può entrare, score = 0
+	if requestGpu > gpuCapacity.Value() {
+		return 0, nil
+	}
+	// GPU totali richieste se scheduliamo il pod
+	requestGpu := totalGpuRequested + podGpuRequest
+	
+	totalSlices := gpuCapacity.Value()
+	freeSlices := gpuCapacity.Value() - totalGpuRequested
+
+	// Fattore di priorità del pod
+	// priorityFactor := map[string]float64{
+	// 	"low-qos":    1.0,
+	// 	"normal-qos": 1.5,
+	// 	"high-qos":   2.0,
+	// }
+	// factor := 1.0
+	// if f, ok := priorityFactor[pod.Spec.PriorityClassName]; ok {
+	// 	factor = f
+	// }
+
 	fit := float64(freeSlices) / float64(podGpuRequest)
 	if fit < 0.1 {
 		fit = 0.1
@@ -137,13 +168,8 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	if fitAdj > 1.3 {
 		fitAdj = 1.3
 	}
-	nodeGpuUtil, _ := getNodeGPUUtil(nodeIP)
-	if nodeGpuUtil < 0 || math.IsNaN(nodeGpuUtil) {
-		nodeGpuUtil = 0
-	}
 
 	// Score base
-	podPenalty := math.Exp(0.25 * float64(len(pods.Items))) 
 	sliceUtil := float64(requestGpu) / float64(totalSlices)
 	if sliceUtil > 1 {
 		sliceUtil = 1 // evita overflow se la richiesta eccede

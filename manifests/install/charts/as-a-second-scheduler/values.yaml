@@ -24,10 +24,21 @@ controller:
 # LoadVariationRiskBalancing and TargetLoadPacking are not enabled by default
 # as they need extra RBAC privileges on metrics.k8s.io.
 
+# plugins:
+#   enabled: ["ArchitectureAware","QoSAware","SortingGpuAware"]
+#   disabled: ["PrioritySort"] # only in-tree plugins need to be defined here
 plugins:
-  enabled: ["ArchitectureAware","QoSAware","SortingGpuAware"]
-  disabled: ["PrioritySort"] # only in-tree plugins need to be defined here
+  enabled:
+    - ArchitectureAware
+    - QoSAware
 
+  disabled: []
+
+  queueSort:
+    enabled:
+      - SortingGpuAware
+    disabled:
+      - PrioritySort
 # Customize the enabled plugins' config.
 # Refer to the "pluginConfig" section of manifests/<plugin>/scheduler-config.yaml.
 # For example, for Coscheduling plugin, you want to customize the permit waiting timeout to 10 seconds:
@@ -50,8 +61,8 @@ pluginConfig:
           factor: 3.0
         - labelValue: "xavier"
           factor: 2.0
-  # - name: SortingGpuAware
-  #   args: {}   
+  - name: SortingGpuAware
+    args: {}   
 
 #pluginConfig:
 #- name: Coscheduling

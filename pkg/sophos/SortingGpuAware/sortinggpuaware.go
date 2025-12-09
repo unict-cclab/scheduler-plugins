@@ -60,14 +60,20 @@ func (pl *SortingGpuAware) Less(pInfo1, pInfo2 *framework.QueuedPodInfo) bool {
 		return result
 	}
 
-	//
-	// 3) FIFO fallback: older pod gets priority
-	//
-	result := p1.CreationTimestamp.Before(&p2.CreationTimestamp)
-	klog.Infof("[SortingGpuAware] FIFO: %s(ts=%s) vs %s(ts=%s) → %v",
-		p1.Name, p1.CreationTimestamp.String(),
-		p2.Name, p2.CreationTimestamp.String(),
-		result)
+	// 3) FIFO fallback
+	if !p1.CreationTimestamp.Equal(&p2.CreationTimestamp) {
+		result := p1.CreationTimestamp.Before(&p2.CreationTimestamp)
+		klog.Infof("[SortingGpuAware] FIFO: %s(ts=%s) vs %s(ts=%s) → %v",
+			p1.Name, p1.CreationTimestamp.String(),
+			p2.Name, p2.CreationTimestamp.String(),
+			result)
+		return result
+	}
+
+	// 4) FINAL TIE-BREAKER → per garantire ordine deterministico
+	result := string(p1.UID) < string(p2.UID)
+	klog.Infof("[SortingGpuAware] TIE BREAK (UID): %s vs %s → %v",
+		p1.Name, p2.Name, result)
 
 	return result
 }

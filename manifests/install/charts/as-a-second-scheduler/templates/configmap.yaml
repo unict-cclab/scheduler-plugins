@@ -11,7 +11,6 @@ data:
     leaderElection:
       leaderElect: {{ .Values.scheduler.leaderElect }}
     profiles:
-    # Compose all plugins in one profile
     - schedulerName: {{ .Values.scheduler.name }}
       plugins:
         multiPoint:
@@ -23,9 +22,23 @@ data:
           {{- range $.Values.plugins.disabled }}
           - name: {{ title . }}
           {{- end }}
+
+        # -------------------------
+        # QUEUESORT PLUGIN SECTION
+        # -------------------------
+        {{- if .Values.plugins.queueSort }}
+        queueSort:
+          enabled:
+          {{- range $.Values.plugins.queueSort.enabled }}
+          - name: {{ . }}
+          {{- end }}
+          disabled:
+          {{- range $.Values.plugins.queueSort.disabled }}
+          - name: {{ title . }}
+          {{- end }}
+        {{- end }}
+
       {{- if $.Values.pluginConfig }}
       pluginConfig: {{ toYaml $.Values.pluginConfig | nindent 6 }}
       {{- end }}
-
-  {{- /* TODO: wire CRD installation with enabled plugins. */}}
 {{- end }}

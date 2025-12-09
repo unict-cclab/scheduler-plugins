@@ -38,6 +38,13 @@ func (pl *SortingGpuAware) Less(pInfo1, pInfo2 *framework.QueuedPodInfo) bool {
 	// if g1 != g2 {
 	// 	return g1 > g2
 	// }
+	// Ordine totale: i pod GPU > 0 stanno sempre prima dei GPU = 0
+	if g1 > 0 && g2 == 0 {
+		return true
+	}
+	if g1 == 0 && g2 > 0 {
+		return false
+	}
 	if g1 != g2 {
 		result := g1 > g2
 		klog.Infof("[SortingGpuAware] Compare GPU: %s(gpu=%d) vs %s(gpu=%d) → %v",

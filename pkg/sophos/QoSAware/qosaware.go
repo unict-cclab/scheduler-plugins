@@ -86,7 +86,7 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	// Capacità GPU del nodo
 	gpuCapacity, ok := nodeObj.Status.Capacity["nvidia.com/gpu.shared"]
 	if !ok || gpuCapacity.Value() == 0 {
-		return 0, framework.NewStatus(framework.Error, fmt.Sprintf("node %q has no GPU capacity", nodeName))
+		return 0, nil
 	}
 
 	// Se il pod non può entrare, score = 0

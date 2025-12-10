@@ -113,8 +113,9 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
         if utilFactor < 0.1 {
             utilFactor = 0.1
         }
+		perfAdj := math.Sqrt(perf)
 
-        base := perf * utilFactor / podPenalty
+        base := perfAdj * utilFactor / (1 + podPenalty)
         if base < 0 {
             base = 0
         }
@@ -175,10 +176,15 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	if sliceUtil > 1 {
 		sliceUtil = 1 // evita overflow se la richiesta eccede
 	}
-	fragmentPenalty := float64(freeSlices) / float64(freeSlices+int64(len(pods.Items))) //indica quanto è frammentata la GPU
+	fragmentRatio := float64(freeSlices) / float64(totalSlices) //indica quanto è frammentata la GPU
+	if fragmentRatio < 0 {
+		fragmentRatio = 0
+	}
+	fragmentPenalty := math.Sqrt(fragmentRatio)
 	if fragmentPenalty < 0.3 {
 		fragmentPenalty = 0.3
 	}
+
 
 	sliceFactor := 1 - sliceUtil
 	if sliceFactor < 0.05 {

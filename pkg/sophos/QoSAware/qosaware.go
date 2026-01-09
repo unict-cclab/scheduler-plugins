@@ -79,9 +79,17 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 			}
 		}
 	}
-
+	// Fattore di priorità del pod
+	priorityFactor := map[string]float64{
+		"low-qos":    0.8,
+		"normal-qos": 1.0,
+		"high-qos":   1.3,
+	}
+	prioFactor := 1.0
+	if f, ok := priorityFactor[pod.Spec.PriorityClassName]; ok {
+		prioFactor = f
+	}
 	// Fattore di performance del nodo
-		// Fattore di performance del nodo (from mappings)
 	deviceType := ""
 	if v, ok := nodeObj.Labels[LabelKey]; ok {
 		deviceType = v
@@ -90,6 +98,9 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	if pf, ok := pl.mappings[deviceType]; ok {
 		perf = pf
 	}
+	// high-qos → amplifica differenza Orin vs Nano
+	perf_prio := math.Pow(perf, prioFactor)
+	
 	var nodeIP string
 	for _, addr := range nodeObj.Status.Addresses {
 		if addr.Type == v1.NodeInternalIP {
@@ -113,7 +124,7 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
         if utilFactor < 0.1 {
             utilFactor = 0.1
         }
-		perfAdj := math.Sqrt(perf)
+		perfAdj := math.Sqrt(perf_prio)
 
         base := perfAdj * utilFactor / (1 + podPenalty)
         if base < 0 {
@@ -146,16 +157,7 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	totalSlices := gpuCapacity.Value()
 	freeSlices := gpuCapacity.Value() - totalGpuRequested
 
-	// Fattore di priorità del pod
-	// priorityFactor := map[string]float64{
-	// 	"low-qos":    1.0,
-	// 	"normal-qos": 1.5,
-	// 	"high-qos":   2.0,
-	// }
-	// factor := 1.0
-	// if f, ok := priorityFactor[pod.Spec.PriorityClassName]; ok {
-	// 	factor = f
-	// }
+
 
 	fit := float64(freeSlices) / float64(podGpuRequest)
 	if fit < 0.1 {
@@ -192,7 +194,7 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	}
 	gpuBias := 1 + math.Log2(float64(podGpuRequest)) * (perf - 1)
 
-	score := int64((perf * gpuBias) * sliceFactor * fitAdj * fragmentPenalty * (1 - nodeGpuUtil/100)/ (1 + podPenalty))
+	score := int64((perf_prio * gpuBias) * sliceFactor * fitAdj * fragmentPenalty * (1 - nodeGpuUtil/100)/ (1 + podPenalty))
 
 	// ---  controllo dei pod sottoutilizzati --- da usare per possibile rescheduling
 	// gamma := 0.5

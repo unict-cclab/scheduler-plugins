@@ -233,26 +233,34 @@ func (pl *QoSAware) ScoreExtensions() framework.ScoreExtensions {
 }
 
 func (pl *QoSAware) NormalizeScore(_ context.Context, _ *framework.CycleState, pod *v1.Pod, scores framework.NodeScoreList) *framework.Status {
-	var highest int64 = -math.MaxInt64
-	var lowest int64 = math.MaxInt64
-	for _, nodeScore := range scores {
-		if nodeScore.Score > highest {
-			highest = nodeScore.Score
-		}
-		if nodeScore.Score < lowest {
-			lowest = nodeScore.Score
-		}
-	}
-	oldRange := highest - lowest
-	newRange := framework.MaxNodeScore - framework.MinNodeScore
-	for i, nodeScore := range scores {
-		if oldRange == 0 {
-			scores[i].Score = framework.MinNodeScore
-		} else {
-			scores[i].Score = ((nodeScore.Score - lowest) * newRange / oldRange) + framework.MinNodeScore
-		}
-		klog.Infof("Normalized score of node %q for pod %q: %d", scores[i].Name, pod.Name, scores[i].Score)
-	}
+	// var highest int64 = -math.MaxInt64
+	// var lowest int64 = math.MaxInt64
+	// for _, nodeScore := range scores {
+	// 	if nodeScore.Score > highest {
+	// 		highest = nodeScore.Score
+	// 	}
+	// 	if nodeScore.Score < lowest {
+	// 		lowest = nodeScore.Score
+	// 	}
+	// }
+	// oldRange := highest - lowest
+	// newRange := framework.MaxNodeScore - framework.MinNodeScore
+	// if highest-lowest < 5 {
+	// 	for i := range scores {
+	// 		scores[i].Score = framework.MinNodeScore + 1
+	// 		klog.Infof("Normalized score of node %q for pod %q: %d", scores[i].Name, pod.Name, scores[i].Score)
+	// 	}
+	// 	return nil
+	// }
+
+	// for i, nodeScore := range scores {
+	// 	if oldRange == 0 {
+	// 		scores[i].Score = framework.MinNodeScore
+	// 	} else {
+	// 		scores[i].Score = ((nodeScore.Score - lowest) * newRange / oldRange) + framework.MinNodeScore
+	// 	}
+	// 	klog.Infof("Normalized score of node %q for pod %q: %d", scores[i].Name, pod.Name, scores[i].Score)
+	// }
 	return nil
 }
 

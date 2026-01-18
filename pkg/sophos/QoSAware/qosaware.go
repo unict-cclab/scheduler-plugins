@@ -194,7 +194,14 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	}
 	gpuBias := 1 + math.Log2(float64(podGpuRequest)) * (perf - 1)
 
-	score := int64((perf_prio * gpuBias) * sliceFactor * fitAdj * fragmentPenalty * (1 - nodeGpuUtil/100)/ (1 + podPenalty))
+
+	raw := (perf_prio * gpuBias) * sliceFactor * fitAdj * fragmentPenalty * (1 - nodeGpuUtil/100) / (1 + podPenalty)
+
+	if raw < 0 {
+		raw = 0
+	}
+
+	score := int64(raw * 1000) 
 
 	// ---  controllo dei pod sottoutilizzati --- da usare per possibile rescheduling
 	// gamma := 0.5
@@ -224,6 +231,10 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	// 		}
 	// 	}
 	// }
+	klog.Infof(
+		"[QoSAware] node=%s perf=%.2f prio=%s raw=%.4f score=%d",
+		nodeName, perf, pod.Spec.PriorityClassName, raw, score,
+	)
 
 	return score, nil
 }
@@ -261,7 +272,29 @@ func (pl *QoSAware) NormalizeScore(_ context.Context, _ *framework.CycleState, p
 	// 	}
 	// 	klog.Infof("Normalized score of node %q for pod %q: %d", scores[i].Name, pod.Name, scores[i].Score)
 	// }
-	return nil
+
+    var max int64 = 0
+    for _, s := range scores {
+        if s.Score > max {
+            max = s.Score
+        }
+    }
+
+    if max == 0 {
+        for i := range scores {
+            scores[i].Score = 1
+            klog.Infof("Normalized score of node %q for pod %q: %d",
+                scores[i].Name, pod.Name, scores[i].Score)
+        }
+        return nil
+    }
+
+    for i := range scores {
+        scores[i].Score = scores[i].Score * framework.MaxNodeScore / max
+        klog.Infof("Normalized score of node %q for pod %q: %d",
+            scores[i].Name, pod.Name, scores[i].Score)
+    }
+    return nil
 }
 
 // func New(_ context.Context, _ runtime.Object, handle framework.Handle) (framework.Plugin, error) {

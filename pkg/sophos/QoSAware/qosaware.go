@@ -112,7 +112,7 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	if nodeGpuUtil < 0 || math.IsNaN(nodeGpuUtil) {
 		nodeGpuUtil = 0
 	}
-		podPenalty := math.Exp(0.5 * float64(len(pods.Items))) 
+		podPenalty := math.Exp(0.4 * float64(len(pods.Items))) 
 
 
     //

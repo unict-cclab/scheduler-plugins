@@ -112,7 +112,7 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	if nodeGpuUtil < 0 || math.IsNaN(nodeGpuUtil) {
 		nodeGpuUtil = 0
 	}
-		podPenalty := math.Exp(0.25 * float64(len(pods.Items))) 
+		podPenalty := math.Exp(0.5 * float64(len(pods.Items))) 
 
 
     //
@@ -203,34 +203,6 @@ func (pl *QoSAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 
 	score := int64(raw * 1000) 
 
-	// ---  controllo dei pod sottoutilizzati --- da usare per possibile rescheduling
-	// gamma := 0.5
-	// for _, p := range pods.Items {
-	// 	throughputPerPod := getThroughputMetric(p) // es. RPS medio negli ultimi 60s
-	// 	nodeMaxThroughput := estimateNodeMaxThroughput(nodeName, deviceType)
-	// 	estGpuUtil, _ := estimatePodGPUUtil(p, nodeName, nodeIP)
-	// 	utilFactor := 1.0 + gamma * (estGpuUtil / 100.0)
-
-	// 	// ignora pod appena creati (<60s)
-	// 	age := time.Since(p.CreationTimestamp.Time)
-	// 	if age < 60*time.Second {
-	// 		continue
-	// 	}
-
-	// 	// evita divisione per zero e considera il nuovo pod in ingresso
-	// 	totalPods := int64(len(pods.Items) + 1)
-	// 	maxThroughputPerPod := nodeMaxThroughput / totalPods
-
-	// 	// considera anche un margine per variazioni normali di traffico
-	// 	if throughputPerPod < (maxThroughputPerPod * 80 / 100) {
-	// 		relocationScore := int64(float64(maxThroughputPerPod-throughputPerPod) * perf * utilFactor)
-	// 		if relocationScore > 0 {
-	// 			klog.Infof("Pod %q on node %q is a candidate for rescheduling (throughput=%d < expected=%d, relocationScore=%d)",
-	// 				p.Name, nodeName, throughputPerPod, maxThroughputPerPod, relocationScore)
-	// 			// TODO: segnalazione per rescheduling
-	// 		}
-	// 	}
-	// }
 	klog.Infof(
 		"[QoSAware] node=%s perf=%.2f prio=%s raw=%.4f score=%d",
 		nodeName, perf, pod.Spec.PriorityClassName, raw, score,

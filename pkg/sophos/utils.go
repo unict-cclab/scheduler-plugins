@@ -40,9 +40,9 @@ func GetOwnerDeployment(ctx context.Context, handle framework.Handle, pod *v1.Po
 func AreLesserOrderPodsScheduled(ctx context.Context, handle framework.Handle, pod *v1.Pod) bool {
 	namespace := pod.GetNamespace()
 
-	appGroup, ok := pod.GetLabels()["app-group"]
+	group, ok := pod.GetLabels()["group"]
 	if !ok {
-		klog.Infof("error getting app-group label for pod %s", pod.Name)
+		klog.Infof("error getting group label for pod %s", pod.Name)
 		return false
 	}
 
@@ -57,8 +57,8 @@ func AreLesserOrderPodsScheduled(ctx context.Context, handle framework.Handle, p
 			if index > 0 {
 				labelSelector := metav1.LabelSelector{
 					MatchLabels: map[string]string{
-						"app-group": appGroup,
-						key:         strconv.Itoa(index - 1),
+						"group": group,
+						key:     strconv.Itoa(index - 1),
 					},
 				}
 				listOptions := metav1.ListOptions{
@@ -87,19 +87,19 @@ func AreLesserOrderPodsScheduled(ctx context.Context, handle framework.Handle, p
 }
 
 func ArePodsNeighbors(pod *v1.Pod, peerPod *v1.Pod) bool {
-	appGroup, ok := pod.GetLabels()["app-group"]
+	group, ok := pod.GetLabels()["group"]
 	if !ok {
-		klog.Infof("error getting app-group label for pod %s", pod.Name)
+		klog.Infof("error getting group label for pod %s", pod.Name)
 		return false
 	}
 
-	peerAppGroup, ok := peerPod.GetLabels()["app-group"]
+	peerGroup, ok := peerPod.GetLabels()["group"]
 	if !ok {
-		klog.Infof("error getting app-group label for pod %s", peerPod.Name)
+		klog.Infof("error getting group label for pod %s", peerPod.Name)
 		return false
 	}
 
-	if appGroup != peerAppGroup {
+	if group != peerGroup {
 		return false
 	}
 
@@ -130,19 +130,19 @@ func ArePodsNeighbors(pod *v1.Pod, peerPod *v1.Pod) bool {
 func GetSharedChainsSlos(pod *v1.Pod, peerPod *v1.Pod) []float64 {
 	var chainsSlos []float64
 
-	appGroup, ok := pod.GetLabels()["app-group"]
+	group, ok := pod.GetLabels()["group"]
 	if !ok {
-		klog.Infof("error getting app-group label for pod %s", pod.Name)
+		klog.Infof("error getting group label for pod %s", pod.Name)
 		return chainsSlos
 	}
 
-	peerAppGroup, ok := peerPod.GetLabels()["app-group"]
+	peerGroup, ok := peerPod.GetLabels()["group"]
 	if !ok {
-		klog.Infof("error getting app-group label for pod %s", peerPod.Name)
+		klog.Infof("error getting group label for pod %s", peerPod.Name)
 		return chainsSlos
 	}
 
-	if appGroup != peerAppGroup {
+	if group != peerGroup {
 		klog.Infof("pods %s and %s do not belong to the same app group", pod.Name, peerPod.Name)
 		return chainsSlos
 	}
@@ -230,19 +230,19 @@ func GetAppMemoryUsage(ctx context.Context, handle framework.Handle, pod *v1.Pod
 }
 
 func GetAppRequestsPerSecond(ctx context.Context, handle framework.Handle, pod *v1.Pod, peerPod *v1.Pod) float64 {
-	appGroup, ok := pod.GetLabels()["app-group"]
+	group, ok := pod.GetLabels()["group"]
 	if !ok {
-		klog.Infof("error getting app-group label for pod %s", pod.Name)
+		klog.Infof("error getting group label for pod %s", pod.Name)
 		return 0.0
 	}
 
-	peerAppGroup, ok := peerPod.GetLabels()["app-group"]
+	peerGroup, ok := peerPod.GetLabels()["group"]
 	if !ok {
-		klog.Infof("error getting app-group label for pod %s", peerPod.Name)
+		klog.Infof("error getting group label for pod %s", peerPod.Name)
 		return 0.0
 	}
 
-	if appGroup != peerAppGroup {
+	if group != peerGroup {
 		klog.Infof("pods %s and %s do not belong to the same app group", pod.Name, peerPod.Name)
 		return 0.0
 	}
@@ -275,19 +275,19 @@ func GetAppRequestsPerSecond(ctx context.Context, handle framework.Handle, pod *
 }
 
 func GetAppTraffic(ctx context.Context, handle framework.Handle, pod *v1.Pod, peerPod *v1.Pod) float64 {
-	appGroup, ok := pod.GetLabels()["app-group"]
+	group, ok := pod.GetLabels()["group"]
 	if !ok {
-		klog.Infof("error getting app-group label for pod %s", pod.Name)
+		klog.Infof("error getting group label for pod %s", pod.Name)
 		return 0.0
 	}
 
-	peerAppGroup, ok := peerPod.GetLabels()["app-group"]
+	peerGroup, ok := peerPod.GetLabels()["group"]
 	if !ok {
-		klog.Infof("error getting app-group label for pod %s", peerPod.Name)
+		klog.Infof("error getting group label for pod %s", peerPod.Name)
 		return 0.0
 	}
 
-	if appGroup != peerAppGroup {
+	if group != peerGroup {
 		klog.Infof("pods %s and %s do not belong to the same app group", pod.Name, peerPod.Name)
 		return 0.0
 	}

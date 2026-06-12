@@ -16,22 +16,24 @@ import (
 )
 
 func GetOwnerDeployment(ctx context.Context, handle framework.Handle, pod *v1.Pod) (*appsv1.Deployment, error) {
-	if len(pod.OwnerReferences) == 0 || pod.OwnerReferences[0].Kind != "ReplicaSet" {
-		return nil, fmt.Errorf("no owner replicaSet for pod %s", pod.Name)
+	replicaSetOwner := metav1.GetControllerOf(pod)
+	if replicaSetOwner == nil || replicaSetOwner.Kind != "ReplicaSet" {
+		return nil, fmt.Errorf("pod %s/%s is not controlled by a ReplicaSet", pod.Namespace, pod.Name)
 	}
 
-	replicaSet, err := handle.ClientSet().AppsV1().ReplicaSets(pod.Namespace).Get(ctx, pod.OwnerReferences[0].Name, metav1.GetOptions{})
+	replicaSet, err := handle.ClientSet().AppsV1().ReplicaSets(pod.Namespace).Get(ctx, replicaSetOwner.Name, metav1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("error in getting pod %s replicaSet", pod.Name)
+		return nil, fmt.Errorf("error getting ReplicaSet %s/%s for pod %s/%s: %w", pod.Namespace, replicaSetOwner.Name, pod.Namespace, pod.Name, err)
 	}
 
-	if len(replicaSet.OwnerReferences) == 0 {
-		return nil, fmt.Errorf("no owner deployment for replicaSet %s", pod.Name)
+	deploymentOwner := metav1.GetControllerOf(replicaSet)
+	if deploymentOwner == nil || deploymentOwner.Kind != "Deployment" {
+		return nil, fmt.Errorf("replicaSet %s/%s is not controlled by a Deployment", replicaSet.Namespace, replicaSet.Name)
 	}
 
-	deployment, err := handle.ClientSet().AppsV1().Deployments(replicaSet.Namespace).Get(ctx, replicaSet.OwnerReferences[0].Name, metav1.GetOptions{})
+	deployment, err := handle.ClientSet().AppsV1().Deployments(replicaSet.Namespace).Get(ctx, deploymentOwner.Name, metav1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("error in getting replicaSet %s deployment", pod.Name)
+		return nil, fmt.Errorf("error getting Deployment %s/%s for ReplicaSet %s/%s: %w", replicaSet.Namespace, deploymentOwner.Name, replicaSet.Namespace, replicaSet.Name, err)
 	}
 
 	return deployment, nil

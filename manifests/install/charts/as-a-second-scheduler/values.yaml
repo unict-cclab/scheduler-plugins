@@ -4,28 +4,42 @@
 
 scheduler:
   name: scheduler-plugins-scheduler
-  image: ghcr.io/unict-cclab/kube-scheduler:sophos-v0.1.5
+  image: ghcr.io/unict-cclab/kube-scheduler:sophos-v0.1.8
   replicaCount: 1
   leaderElect: false
-  nodeSelector:
-    kubernetes.io/hostname: k3s-master-01
-  affinity: {}
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+          - key: nodepool
+            operator: In
+            values:
+            - management
   tolerations: []
 
 controller:
   name: scheduler-plugins-controller
   image: registry.k8s.io/scheduler-plugins/controller:v0.29.7
-  replicaCount: 1
-  nodeSelector: 
-    kubernetes.io/hostname: k3s-master-01
-  affinity: {}
+  replicaCount: 1 
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+          - key: nodepool
+            operator: In
+            values:
+            - management
   tolerations: []
 
 # LoadVariationRiskBalancing and TargetLoadPacking are not enabled by default
 # as they need extra RBAC privileges on metrics.k8s.io.
 
 plugins:
-  enabled: ["ArchitectureAware"]
+  enabled: ["LoadAwareResourcesBalancedAllocation"]
 #  disabled: ["PrioritySort"] # only in-tree plugins need to be defined here
 
 # Customize the enabled plugins' config.

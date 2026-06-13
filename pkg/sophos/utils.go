@@ -3,7 +3,6 @@ package sophos
 import (
 	"context"
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 
@@ -13,6 +12,15 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
+)
+
+const (
+	appLabel          = "app"
+	groupLabel        = "group"
+	chainLabelPrefix  = "chain-"
+	cpuUsageKey       = "cpu-usage"
+	memoryUsageKey    = "memory-usage"
+	networkLatencyKey = "network-latency."
 )
 
 func GetOwnerDeployment(ctx context.Context, handle framework.Handle, pod *v1.Pod) (*appsv1.Deployment, error) {
@@ -39,17 +47,54 @@ func GetOwnerDeployment(ctx context.Context, handle framework.Handle, pod *v1.Po
 	return deployment, nil
 }
 
+func sameAppGroup(pod *v1.Pod, peerPod *v1.Pod) bool {
+	group, ok := pod.GetLabels()[groupLabel]
+	if !ok {
+		klog.Infof("error getting group label for pod %s", pod.Name)
+		return false
+	}
+
+	peerGroup, ok := peerPod.GetLabels()[groupLabel]
+	if !ok {
+		klog.Infof("error getting group label for pod %s", peerPod.Name)
+		return false
+	}
+
+	if group != peerGroup {
+		klog.Infof("pods %s and %s do not belong to the same app group", pod.Name, peerPod.Name)
+		return false
+	}
+
+	return true
+}
+
+func parseAnnotationFloat(annotations map[string]string, key, objectKind, objectName string) float64 {
+	value, ok := annotations[key]
+	if !ok {
+		klog.Infof("%q annotation not found on %s %s", key, objectKind, objectName)
+		return 0.0
+	}
+
+	parsedValue, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		klog.Infof("error parsing %q annotation of %s %s", key, objectKind, objectName)
+		return 0.0
+	}
+
+	return parsedValue
+}
+
 func AreLesserOrderPodsScheduled(ctx context.Context, handle framework.Handle, pod *v1.Pod) bool {
 	namespace := pod.GetNamespace()
 
-	group, ok := pod.GetLabels()["group"]
+	group, ok := pod.GetLabels()[groupLabel]
 	if !ok {
 		klog.Infof("error getting group label for pod %s", pod.Name)
 		return false
 	}
 
 	for key, value := range pod.GetLabels() {
-		if strings.HasPrefix(key, "chain-") {
+		if strings.HasPrefix(key, chainLabelPrefix) {
 			index, err := strconv.Atoi(value)
 			if err != nil {
 				klog.Infof("error parsing chain label value for pod %s", pod.Name)
@@ -57,14 +102,11 @@ func AreLesserOrderPodsScheduled(ctx context.Context, handle framework.Handle, p
 			}
 
 			if index > 0 {
-				labelSelector := metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"group": group,
-						key:     strconv.Itoa(index - 1),
-					},
-				}
 				listOptions := metav1.ListOptions{
-					LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
+					LabelSelector: labels.Set{
+						groupLabel: group,
+						key:        strconv.Itoa(index - 1),
+					}.String(),
 				}
 				lesserOrderPods, err := handle.ClientSet().CoreV1().Pods(namespace).List(ctx, listOptions)
 				if err != nil {
@@ -89,36 +131,26 @@ func AreLesserOrderPodsScheduled(ctx context.Context, handle framework.Handle, p
 }
 
 func ArePodsNeighbors(pod *v1.Pod, peerPod *v1.Pod) bool {
-	group, ok := pod.GetLabels()["group"]
-	if !ok {
-		klog.Infof("error getting group label for pod %s", pod.Name)
-		return false
-	}
-
-	peerGroup, ok := peerPod.GetLabels()["group"]
-	if !ok {
-		klog.Infof("error getting group label for pod %s", peerPod.Name)
-		return false
-	}
-
-	if group != peerGroup {
+	if !sameAppGroup(pod, peerPod) {
 		return false
 	}
 
 	for key, value := range pod.GetLabels() {
-		if strings.HasPrefix(key, "chain-") {
-			index, err := strconv.ParseFloat(value, 64)
+		if strings.HasPrefix(key, chainLabelPrefix) {
+			index, err := strconv.Atoi(value)
 			if err != nil {
 				klog.Infof("error parsing chain label value for pod %s", pod.Name)
+				return false
 			}
 
 			peerValue, ok := peerPod.GetLabels()[key]
 			if ok {
-				peerIndex, err := strconv.ParseFloat(peerValue, 64)
+				peerIndex, err := strconv.Atoi(peerValue)
 				if err != nil {
 					klog.Infof("error parsing chain label value for pod %s", peerPod.Name)
+					return false
 				}
-				if int64(math.Abs(index-peerIndex)) == 1 {
+				if index-peerIndex == 1 || peerIndex-index == 1 {
 					klog.Infof("Pods %s and %s are neighbors", pod.Name, peerPod.Name)
 					return true
 				}
@@ -132,26 +164,13 @@ func ArePodsNeighbors(pod *v1.Pod, peerPod *v1.Pod) bool {
 func GetSharedChainsSlos(pod *v1.Pod, peerPod *v1.Pod) []float64 {
 	var chainsSlos []float64
 
-	group, ok := pod.GetLabels()["group"]
-	if !ok {
-		klog.Infof("error getting group label for pod %s", pod.Name)
-		return chainsSlos
-	}
-
-	peerGroup, ok := peerPod.GetLabels()["group"]
-	if !ok {
-		klog.Infof("error getting group label for pod %s", peerPod.Name)
-		return chainsSlos
-	}
-
-	if group != peerGroup {
-		klog.Infof("pods %s and %s do not belong to the same app group", pod.Name, peerPod.Name)
+	if !sameAppGroup(pod, peerPod) {
 		return chainsSlos
 	}
 
 	for key, value := range pod.GetLabels() {
-		if strings.HasPrefix(key, "chain-") {
-			index, err := strconv.ParseFloat(value, 64)
+		if strings.HasPrefix(key, chainLabelPrefix) {
+			index, err := strconv.Atoi(value)
 			if err != nil {
 				klog.Infof("error parsing chain label value for pod %s", pod.Name)
 				return chainsSlos
@@ -159,22 +178,16 @@ func GetSharedChainsSlos(pod *v1.Pod, peerPod *v1.Pod) []float64 {
 
 			peerValue, ok := peerPod.GetLabels()[key]
 			if ok {
-				peerIndex, err := strconv.ParseFloat(peerValue, 64)
+				peerIndex, err := strconv.Atoi(peerValue)
 				if err != nil {
 					klog.Infof("error parsing chain label value for pod %s", peerPod.Name)
+					return chainsSlos
 				}
-				if int64(math.Abs(index-peerIndex)) == 1 {
+				if index-peerIndex == 1 || peerIndex-index == 1 {
 					klog.Infof("pods %s and %s are neighbors", pod.Name, peerPod.Name)
 
-					chainSloAnnotation, ok := pod.GetAnnotations()[key+"-slo"]
-					if !ok {
-						klog.Infof("error getting %s annotation for pod %s", key+"-slo", pod.Name)
-						return chainsSlos
-					}
-
-					chainSlo, err := strconv.ParseFloat(chainSloAnnotation, 64)
-					if err != nil {
-						klog.Infof("error parsing %s annotation for pod %s", key+"-slo", pod.Name)
+					chainSlo := parseAnnotationFloat(pod.GetAnnotations(), key+"-slo", "pod", pod.Name)
+					if chainSlo == 0.0 {
 						return chainsSlos
 					}
 
@@ -194,19 +207,7 @@ func GetAppCpuUsage(ctx context.Context, handle framework.Handle, pod *v1.Pod) f
 		return 0.0
 	}
 
-	cpuUsageAnnotation, ok := deployment.Annotations["cpu-usage"]
-	if !ok {
-		klog.Infof("\"cpu-usage\" annotation not found on deployment %s", deployment.Name)
-		return 0.0
-	}
-
-	cpuUsage, err := strconv.ParseFloat(cpuUsageAnnotation, 64)
-	if err != nil {
-		klog.Infof("error parsing \"cpu-usage\" annotation of deployment %s", deployment.Name)
-		return 0.0
-	}
-
-	return cpuUsage
+	return parseAnnotationFloat(deployment.Annotations, cpuUsageKey, "deployment", deployment.Name)
 }
 
 func GetAppMemoryUsage(ctx context.Context, handle framework.Handle, pod *v1.Pod) float64 {
@@ -216,85 +217,29 @@ func GetAppMemoryUsage(ctx context.Context, handle framework.Handle, pod *v1.Pod
 		return 0.0
 	}
 
-	memoryUsageAnnotation, ok := deployment.Annotations["memory-usage"]
-	if !ok {
-		klog.Infof("\"memory-usage\" annotation not found on deployment %s", deployment.Name)
-		return 0.0
-	}
-
-	memoryUsage, err := strconv.ParseFloat(memoryUsageAnnotation, 64)
-	if err != nil {
-		klog.Infof("error parsing \"memory-usage\" annotation of pod %s", deployment.Name)
-		return 0.0
-	}
-
-	return memoryUsage
+	return parseAnnotationFloat(deployment.Annotations, memoryUsageKey, "deployment", deployment.Name)
 }
 
-func GetAppRequestsPerSecond(ctx context.Context, handle framework.Handle, pod *v1.Pod, peerPod *v1.Pod) float64 {
-	group, ok := pod.GetLabels()["group"]
-	if !ok {
-		klog.Infof("error getting group label for pod %s", pod.Name)
+func GetAppRequestsPerSecond(_ context.Context, _ framework.Handle, pod *v1.Pod, peerPod *v1.Pod) float64 {
+	if !sameAppGroup(pod, peerPod) {
 		return 0.0
 	}
 
-	peerGroup, ok := peerPod.GetLabels()["group"]
-	if !ok {
-		klog.Infof("error getting group label for pod %s", peerPod.Name)
-		return 0.0
-	}
-
-	if group != peerGroup {
-		klog.Infof("pods %s and %s do not belong to the same app group", pod.Name, peerPod.Name)
-		return 0.0
-	}
-
-	peerApp, ok := peerPod.GetLabels()["app"]
+	peerApp, ok := peerPod.GetLabels()[appLabel]
 	if !ok {
 		klog.Infof("error getting app label for pod %s", peerPod.Name)
 		return 0.0
 	}
 
-	deployment, err := GetOwnerDeployment(ctx, handle, pod)
-	if err != nil {
-		klog.Infof("error getting owner deployment for pod %s: %s", pod.Name, err.Error())
-		return 0.0
-	}
-
-	rpsAnnotation, ok := pod.Annotations["rps."+peerApp]
-	if !ok {
-		klog.Infof("\"rps.%s\" annotation not found on deployment %s", peerApp, deployment.Name)
-		return 0.0
-	}
-
-	rps, err := strconv.ParseFloat(rpsAnnotation, 64)
-	if err != nil {
-		klog.Infof("error parsing \"rps.%s\" annotation of deployment %s", peerApp, deployment.Name)
-		return 0.0
-	}
-
-	return rps
+	return parseAnnotationFloat(pod.GetAnnotations(), "rps."+peerApp, "pod", pod.Name)
 }
 
 func GetAppTraffic(ctx context.Context, handle framework.Handle, pod *v1.Pod, peerPod *v1.Pod) float64 {
-	group, ok := pod.GetLabels()["group"]
-	if !ok {
-		klog.Infof("error getting group label for pod %s", pod.Name)
+	if !sameAppGroup(pod, peerPod) {
 		return 0.0
 	}
 
-	peerGroup, ok := peerPod.GetLabels()["group"]
-	if !ok {
-		klog.Infof("error getting group label for pod %s", peerPod.Name)
-		return 0.0
-	}
-
-	if group != peerGroup {
-		klog.Infof("pods %s and %s do not belong to the same app group", pod.Name, peerPod.Name)
-		return 0.0
-	}
-
-	peerApp, ok := peerPod.GetLabels()["app"]
+	peerApp, ok := peerPod.GetLabels()[appLabel]
 	if !ok {
 		klog.Infof("error getting app label for pod %s", peerPod.Name)
 		return 0.0
@@ -306,65 +251,17 @@ func GetAppTraffic(ctx context.Context, handle framework.Handle, pod *v1.Pod, pe
 		return 0.0
 	}
 
-	trafficAnnotation, ok := deployment.Annotations["traffic."+peerApp]
-	if !ok {
-		klog.Infof("\"traffic.%s\" annotation not found on deployment %s", peerApp, deployment.Name)
-		return 0.0
-	}
-
-	traffic, err := strconv.ParseFloat(trafficAnnotation, 64)
-	if err != nil {
-		klog.Infof("error parsing \"traffic.%s\" annotation of deployment %s", peerApp, deployment.Name)
-		return 0.0
-	}
-
-	return traffic
+	return parseAnnotationFloat(deployment.Annotations, "traffic."+peerApp, "deployment", deployment.Name)
 }
 
 func GetNodeCpuUsage(node *v1.Node) float64 {
-	cpuUsageAnnotation, ok := node.Annotations["cpu-usage"]
-	if !ok {
-		klog.Infof("\"cpu-usage\" annotation not found on node %s", node.Name)
-		return 0.0
-	}
-
-	cpuUsage, err := strconv.ParseFloat(cpuUsageAnnotation, 64)
-	if err != nil {
-		klog.Infof("error parsing \"cpu-usage\" annotation of node %s", node.Name)
-		return 0.0
-	}
-
-	return cpuUsage
+	return parseAnnotationFloat(node.Annotations, cpuUsageKey, "node", node.Name)
 }
 
 func GetNodeMemoryUsage(node *v1.Node) float64 {
-	memoryUsageAnnotation, ok := node.Annotations["memory-usage"]
-	if !ok {
-		klog.Infof("\"memory-usage\" annotation not found on node %s", node.Name)
-		return 0.0
-	}
-
-	memoryUsage, err := strconv.ParseFloat(memoryUsageAnnotation, 64)
-	if err != nil {
-		klog.Infof("error parsing \"memory-usage\" annotation of node %s", node.Name)
-		return 0.0
-	}
-
-	return memoryUsage
+	return parseAnnotationFloat(node.Annotations, memoryUsageKey, "node", node.Name)
 }
 
 func GetNodeLatency(node *v1.Node, peerNode *v1.Node) float64 {
-	latencyAnnotation, ok := node.Annotations["network-latency."+peerNode.Name]
-	if !ok {
-		klog.Infof("\"network-latency.%s\" annotation not found on node %s", peerNode.Name, node.Name)
-		return 0.0
-	}
-
-	latency, err := strconv.ParseFloat(latencyAnnotation, 64)
-	if err != nil {
-		klog.Infof("error parsing \"network-latency.%s\" annotation of node %s", peerNode.Name, node.Name)
-		return 0.0
-	}
-
-	return latency
+	return parseAnnotationFloat(node.Annotations, networkLatencyKey+peerNode.Name, "node", node.Name)
 }

@@ -47,7 +47,7 @@ func GetOwnerDeployment(ctx context.Context, handle framework.Handle, pod *v1.Po
 	return deployment, nil
 }
 
-func sameAppGroup(pod *v1.Pod, peerPod *v1.Pod) bool {
+func sameGroup(pod *v1.Pod, peerPod *v1.Pod) bool {
 	group, ok := pod.GetLabels()[groupLabel]
 	if !ok {
 		klog.Infof("error getting group label for pod %s", pod.Name)
@@ -61,7 +61,7 @@ func sameAppGroup(pod *v1.Pod, peerPod *v1.Pod) bool {
 	}
 
 	if group != peerGroup {
-		klog.Infof("pods %s and %s do not belong to the same app group", pod.Name, peerPod.Name)
+		klog.Infof("pods %s and %s do not belong to the same group", pod.Name, peerPod.Name)
 		return false
 	}
 
@@ -131,7 +131,7 @@ func AreLesserOrderPodsScheduled(ctx context.Context, handle framework.Handle, p
 }
 
 func ArePodsNeighbors(pod *v1.Pod, peerPod *v1.Pod) bool {
-	if !sameAppGroup(pod, peerPod) {
+	if !sameGroup(pod, peerPod) {
 		return false
 	}
 
@@ -164,7 +164,7 @@ func ArePodsNeighbors(pod *v1.Pod, peerPod *v1.Pod) bool {
 func GetSharedChainsSlos(pod *v1.Pod, peerPod *v1.Pod) []float64 {
 	var chainsSlos []float64
 
-	if !sameAppGroup(pod, peerPod) {
+	if !sameGroup(pod, peerPod) {
 		return chainsSlos
 	}
 
@@ -221,7 +221,7 @@ func GetAppMemoryUsage(ctx context.Context, handle framework.Handle, pod *v1.Pod
 }
 
 func GetAppRequestsPerSecond(_ context.Context, _ framework.Handle, pod *v1.Pod, peerPod *v1.Pod) float64 {
-	if !sameAppGroup(pod, peerPod) {
+	if !sameGroup(pod, peerPod) {
 		return 0.0
 	}
 
@@ -235,7 +235,7 @@ func GetAppRequestsPerSecond(_ context.Context, _ framework.Handle, pod *v1.Pod,
 }
 
 func GetAppTraffic(ctx context.Context, handle framework.Handle, pod *v1.Pod, peerPod *v1.Pod) float64 {
-	if !sameAppGroup(pod, peerPod) {
+	if !sameGroup(pod, peerPod) {
 		return 0.0
 	}
 

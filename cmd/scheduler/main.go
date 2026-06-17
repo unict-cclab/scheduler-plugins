@@ -72,6 +72,8 @@ func main() {
 		app.WithPlugin(networksloaware.Name, networksloaware.New),
 		app.WithPlugin(gpuaware.Name, gpuaware.New),
 		app.WithPlugin(architectureaware.Name, architectureaware.New),
+		app.WithPlugin(qosaware.Name, qosaware.New),
+		app.WithPlugin(sortinggpuaware.Name, sortinggpuaware.New),
 	)
 
 	code := cli.Run(command)

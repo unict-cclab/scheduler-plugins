@@ -182,4 +182,5 @@ replace (
 	k8s.io/mount-utils => k8s.io/mount-utils v0.30.4
 	k8s.io/pod-security-admission => k8s.io/pod-security-admission v0.30.4
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.30.4
+	sigs.k8s.io/scheduler-plugins => ./scheduler-plugins
 )

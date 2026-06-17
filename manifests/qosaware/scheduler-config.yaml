@@ -1,0 +1,28 @@
+apiVersion: kubescheduler.config.k8s.io/v1
+kind: KubeSchedulerConfiguration
+
+leaderElection:
+  leaderElect: false
+
+clientConnection:
+  kubeconfig: ""
+
+profiles:
+  - schedulerName: scheduler-plugins-scheduler
+    plugins:
+      multiPoint:
+        enabled:
+          - name: QoSAware
+        disabled:
+          - name: "*"
+    pluginConfig:
+      - name: QoSAware
+        args:
+          mappings:
+            - labelValue: "nano"
+              factor:  1.0
+            - labelValue: "orin"
+              factor: 4.0
+            - labelValue: "xavier"
+              factor: 2.0
+            #Calcolate con CUDA samples matrixMul, da verificare saturando nodo con pods gpu

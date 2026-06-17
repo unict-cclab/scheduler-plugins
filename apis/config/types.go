@@ -24,6 +24,39 @@ import (
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+type QoSAwareArgs struct {
+    metav1.TypeMeta `json:",inline"`
+
+	// Lista di mapping tra valore della label e factor del dispostivo
+	Mappings []DeviceFactoreMapping `json:"mappings,omitempty"`
+
+}
+
+// Singolo mapping label → factor
+type DeviceFactoreMapping struct {
+	LabelValue string `json:"labelValue,omitempty"`
+	Factor       float64 `json:"factor,omitempty"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type ArchitectureAwareArgs struct {
+    metav1.TypeMeta `json:",inline"`
+
+	// Lista di mapping tra valore della label e tag dell'immagine
+	Mappings []DeviceMapping `json:"mappings,omitempty"`
+    // OrinTag string `json:"orinTag,omitempty"`
+    // NanoTag string `json:"nanoTag,omitempty"`
+}
+
+// Singolo mapping label → tag
+type DeviceMapping struct {
+	LabelValue string `json:"labelValue,omitempty"`
+	Tag        string `json:"tag,omitempty"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // CoschedulingArgs defines the parameters for Coscheduling plugin.
 type CoschedulingArgs struct {
 	metav1.TypeMeta

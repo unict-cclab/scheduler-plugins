@@ -35,6 +35,8 @@ import (
 	"sigs.k8s.io/scheduler-plugins/pkg/qos"
 	"sigs.k8s.io/scheduler-plugins/pkg/sophos/architectureaware"
 	"sigs.k8s.io/scheduler-plugins/pkg/sophos/gpuaware"
+	"sigs.k8s.io/scheduler-plugins/pkg/sophos/qosaware"
+	"sigs.k8s.io/scheduler-plugins/pkg/sophos/sortinggpuaware"
 	"sigs.k8s.io/scheduler-plugins/pkg/sophos/loadawareresourcesbalancedallocation"
 	"sigs.k8s.io/scheduler-plugins/pkg/sophos/networkaware"
 	"sigs.k8s.io/scheduler-plugins/pkg/sophos/networksloaware"

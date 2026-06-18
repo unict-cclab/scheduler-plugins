@@ -39,6 +39,20 @@ var _ = framework.PreBindPlugin(&ArchitectureAware{})
 func (pl *ArchitectureAware) Name() string {
 	return Name
 }
+
+func replaceImageTag(image, newTag string) string {
+    if newTag == "" {
+        return image
+    }
+    slashIdx := strings.LastIndex(image, "/")
+    tagSearchStart := slashIdx + 1
+    colonIdx := strings.LastIndex(image[tagSearchStart:], ":")
+    if colonIdx == -1 {
+        return image + ":" + newTag
+    }
+    return image[:tagSearchStart+colonIdx] + ":" + newTag
+}
+
 func (pl *ArchitectureAware) PreBind(ctx context.Context,  _ *framework.CycleState, pod *v1.Pod, nodeName string) *framework.Status{
     klog.Infof("[ArchitectureAware] PreBind: Pod %s/%s to node %s", pod.Namespace, pod.Name, nodeName)
 
@@ -70,7 +84,6 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context,  _ *framework.CycleSta
 			continue
 		}
 
-		// (1) Image: preserva registry/repo, cambia solo il tag
 		newImage := replaceImageTag(c.Image, mapping.Tag)
 		if newImage != c.Image {
 			patchOps = append(patchOps, map[string]interface{}{
@@ -124,18 +137,6 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context,  _ *framework.CycleSta
 // 	}
 // 	return pl, nil
 // }
-func replaceImageTag(image, newTag string) string {
-    if newTag == "" {
-        return image
-    }
-    slashIdx := strings.LastIndex(image, "/")
-    tagSearchStart := slashIdx + 1
-    colonIdx := strings.LastIndex(image[tagSearchStart:], ":")
-    if colonIdx == -1 {
-        return image + ":" + newTag
-    }
-    return image[:tagSearchStart+colonIdx] + ":" + newTag
-}
 
 func New(_ context.Context, obj runtime.Object, handle framework.Handle) (framework.Plugin, error) {
     args, ok := obj.(*config.ArchitectureAwareArgs)

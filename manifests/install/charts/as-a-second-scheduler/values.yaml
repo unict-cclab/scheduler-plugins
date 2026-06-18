@@ -65,10 +65,22 @@ pluginConfig:
       mappings:
         - labelValue: "nano"
           tag: "latest-nvidia-l4t-arm64"
+          backendsPath: "/backends/arm64"
         - labelValue: "orin"
           tag: "r36"
+          backendsPath: "/backends/arm64"
         - labelValue: "xavier"
           tag: "beta"
+          backendsPath: "/backends/arm64"
+        - labelValue: "amd"
+          tag: "latest-aio-cpu"
+          backendsPath: "/backends/amd64"
+        - labelValue: "amd64"           # fallback for nodes using only kubernetes.io/arch
+          tag: "latest-aio-cpu"
+          backendsPath: "/backends/amd64"
+        - labelValue: "arm64"           # fallback for arm nodes using kubernetes.io/arch
+          tag: "latest-nvidia-l4t-arm64"
+          backendsPath: "/backends/arm64"
   - name: QoSAware
     args:
       mappings:

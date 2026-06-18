@@ -3,6 +3,8 @@ package architectureaware
 import (
 	"context"
 	"fmt"
+    //"os"
+    "strings"
 	"encoding/json"
         metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/api/core/v1"
@@ -10,16 +12,27 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/scheduler-plugins/apis/config"
+	// config "github.com/unict-cclab/scheduler-plugins/apis/config"
 )
+
 
 const (
 	Name = "ArchitectureAware"
+	LabelKey = "nvidia.com/device-plugin.config" // chiave fissa della label sui nodi
+	envVarName       = "LOCALAI_BACKENDS_PATH"
 )
-
-type ArchitectureAware struct {
-	handle framework.Handle
+type ArchMapping struct {
+	LabelValue   string `json:"labelValue"`
+	Tag          string `json:"tag"`
+	BackendsPath string `json:"backendsPath,omitempty"`
 }
 
+type ArchitectureAware struct {
+	handle   framework.Handle
+	mappings map[string]ArchMapping
+}
+-
 var _ = framework.PreBindPlugin(&ArchitectureAware{})
 
 
@@ -38,82 +51,122 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context,  _ *framework.CycleSta
 		return framework.NewStatus(framework.Error, msg)
 	}
     //label to choose
-	deviceType := node.Labels["nvidia.com/device-plugin.config"]
-	klog.Infof("[ArchitectureAware] Node %s have label nvidia.com/device-plugin.config=%s", nodeName, deviceType)
+	deviceType := node.Labels[LabelKey]
+	klog.Infof("[ArchitectureAware] Node %s has label %s=%s", nodeName, LabelKey, deviceType)
 
-	var newImage string
-	switch deviceType {
-	case "orin":
-		newImage = "192.168.1.252:480/jetson/multicomponent_service:r36"
-	case "nano":
-		newImage = "192.168.1.252:480/jetson/multicomponent_service:latest"
-	default:
-		klog.Warningf("[ArchitectureAware] Node %s without valid label (%s), Image not modified", nodeName, deviceType)
+	mapping, ok := pl.mappings[deviceType]
+	if !ok || mapping.Tag == "" {
+		klog.Warningf("[ArchitectureAware] No mapping for device type %q", deviceType)
 		return framework.NewStatus(framework.Success, "")
 	}
 
-	podCopy := pod.DeepCopy()
-	updated := false
-	for i := range podCopy.Spec.Containers {
-		if podCopy.Spec.Containers[i].Name == "nn" {
-			oldImage := podCopy.Spec.Containers[i].Image
-			podCopy.Spec.Containers[i].Image = newImage
-			klog.Infof("[ArchitectureAware] Change container 'nn' image from %s → %s", oldImage, newImage)
-			updated = true
-			break
-		}
-	}
+	// Nomi container patchabili (nn = legacy, local-ai = master LocalAI, worker = worker LocalAI)
+	patchable := map[string]bool{"nn": true, "local-ai": true, "worker": true}
 
+	patchOps := []map[string]interface{}{}
 
-	if !updated {
-		klog.Warningf("[ArchitectureAware] No container 'nn' find in the Pod %s/%s", pod.Namespace, pod.Name)
-		return framework.NewStatus(framework.Success, "")
-	}
-
-	var containerIndex int = -1
 	for i, c := range pod.Spec.Containers {
-		if c.Name == "nn" {
-			containerIndex = i
-			break
+		if !patchable[c.Name] {
+			continue
+		}
+
+		// (1) Image: preserva registry/repo, cambia solo il tag
+		newImage := replaceImageTag(c.Image, mapping.Tag)
+		if newImage != c.Image {
+			patchOps = append(patchOps, map[string]interface{}{
+				"op":    "replace",
+				"path":  fmt.Sprintf("/spec/containers/%d/image", i),
+				"value": newImage,
+			})
+			klog.Infof("[ArchitectureAware] container[%d]=%s image: %s → %s", i, c.Name, c.Image, newImage)
+		}
+
+		// (2) LOCALAI_BACKENDS_PATH: solo se backendsPath configurato E il container ha quella env var
+		if mapping.BackendsPath != "" {
+			for j, e := range c.Env {
+				if e.Name == envVarName && e.Value != mapping.BackendsPath {
+					patchOps = append(patchOps, map[string]interface{}{
+						"op":    "replace",
+						"path":  fmt.Sprintf("/spec/containers/%d/env/%d/value", i, j),
+						"value": mapping.BackendsPath,
+					})
+					klog.Infof("[ArchitectureAware] container[%d]=%s env %s: %s → %s",
+						i, c.Name, envVarName, e.Value, mapping.BackendsPath)
+					break
+				}
+			}
 		}
 	}
-	if containerIndex == -1 {
-		klog.Warningf("[ArchitectureAware] No container 'nn' found in Pod %s/%s", pod.Namespace, pod.Name)
+
+	if len(patchOps) == 0 {
+		klog.Infof("[ArchitectureAware] No changes needed for Pod %s/%s", pod.Namespace, pod.Name)
 		return framework.NewStatus(framework.Success, "")
 	}
 
-	patchOps := []map[string]string{
-		{
-			"op":    "replace",
-			"path":  fmt.Sprintf("/spec/containers/%d/image", containerIndex),
-			"value": newImage,
-		},
-	}
-
-	// Serializza la patch
 	patchBytes, _ := json.Marshal(patchOps)
-
 	_, err = client.CoreV1().Pods(pod.Namespace).Patch(
-		ctx,
-		pod.Name,
-		types.JSONPatchType, // 👈 JSON patch, non StrategicMerge
-		patchBytes,
-		metav1.PatchOptions{},
+		ctx, pod.Name, types.JSONPatchType, patchBytes, metav1.PatchOptions{},
 	)
 	if err != nil {
-		msg := fmt.Sprintf("Failed to patch image on Pod %s/%s: %v", pod.Namespace, pod.Name, err)
+		msg := fmt.Sprintf("Failed to patch Pod %s/%s: %v", pod.Namespace, pod.Name, err)
 		klog.Error(msg)
 		return framework.NewStatus(framework.Error, msg)
 	}
 
-	klog.Infof("[ArchitectureAware] Patched Pod %s/%s with image %s on container 'nn'", pod.Namespace, pod.Name, newImage)
+	klog.Infof("[ArchitectureAware] Applied %d patch op(s) to Pod %s/%s", len(patchOps), pod.Namespace, pod.Name)
 	return framework.NewStatus(framework.Success, "")
 
 }
 
-func New(_ context.Context, _ runtime.Object, handle framework.Handle) (framework.Plugin, error) {
-	pl := &ArchitectureAware{
-		handle: handle,
+// func New(_ context.Context, _ runtime.Object, handle framework.Handle) (framework.Plugin, error) {
+// 	pl := &ArchitectureAware{
+// 		handle: handle,
+// 	}
+// 	return pl, nil
+// }
+func replaceImageTag(image, newTag string) string {
+    if newTag == "" {
+        return image
+    }
+    slashIdx := strings.LastIndex(image, "/")
+    tagSearchStart := slashIdx + 1
+    colonIdx := strings.LastIndex(image[tagSearchStart:], ":")
+    if colonIdx == -1 {
+        return image + ":" + newTag
+    }
+    return image[:tagSearchStart+colonIdx] + ":" + newTag
+}
+
+func New(_ context.Context, obj runtime.Object, handle framework.Handle) (framework.Plugin, error) {
+    args, ok := obj.(*config.ArchitectureAwareArgs)
+    if !ok {
+        return nil, fmt.Errorf("want args to be of type ArchitectureAwareArgs, got %T", obj)
+    }
+
+    // pl := &ArchitectureAware{
+    //     handle: handle,
+    // }
+
+	// Trasforma la lista in una mappa
+	mappings := make(map[string]ArchMapping)
+	for _, m := range args.Mappings {
+		if m.LabelValue != "" && m.Tag != "" {
+			mappings[m.LabelValue] = ArchMapping{
+				LabelValue:   m.LabelValue,
+				Tag:          m.Tag,
+				BackendsPath: m.BackendsPath,
+			}
+		}
 	}
+	pl := &ArchitectureAware{
+		handle:   handle,
+		mappings: mappings,
+	}
+
+	klog.Infof("[ArchitectureAware] Loaded mappings: %+v", mappings)
 	return pl, nil
+    //os.Setenv("TAG_ORIN", args.OrinTag)
+    //os.Setenv("TAG_NANO", args.NanoTag)
+
+    //return pl, nil
 }

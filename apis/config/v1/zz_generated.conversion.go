@@ -276,6 +276,7 @@ func Convert_config_CoschedulingArgs_To_v1_CoschedulingArgs(in *config.Coschedul
 func autoConvert_v1_DeviceFactoreMapping_To_config_DeviceFactoreMapping(in *DeviceFactoreMapping, out *config.DeviceFactoreMapping, s conversion.Scope) error {
 	out.LabelValue = in.LabelValue
 	out.Factor = in.Factor
+	out.BackendsPath = in.BackendsPath
 	return nil
 }
 
@@ -287,6 +288,7 @@ func Convert_v1_DeviceFactoreMapping_To_config_DeviceFactoreMapping(in *DeviceFa
 func autoConvert_config_DeviceFactoreMapping_To_v1_DeviceFactoreMapping(in *config.DeviceFactoreMapping, out *DeviceFactoreMapping, s conversion.Scope) error {
 	out.LabelValue = in.LabelValue
 	out.Factor = in.Factor
+	out.BackendsPath = in.BackendsPath
 	return nil
 }
 

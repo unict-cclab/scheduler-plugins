@@ -32,7 +32,7 @@ type ArchitectureAware struct {
 	handle   framework.Handle
 	mappings map[string]ArchMapping
 }
--
+
 var _ = framework.PreBindPlugin(&ArchitectureAware{})
 
 

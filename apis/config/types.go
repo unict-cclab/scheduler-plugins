@@ -36,7 +36,6 @@ type QoSAwareArgs struct {
 type DeviceFactoreMapping struct {
 	LabelValue string `json:"labelValue,omitempty"`
 	Factor       float64 `json:"factor,omitempty"`
-	BackendsPath string `json:"backendsPath,omitempty"` 
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -54,6 +53,7 @@ type ArchitectureAwareArgs struct {
 type DeviceMapping struct {
 	LabelValue string `json:"labelValue,omitempty"`
 	Tag        string `json:"tag,omitempty"`
+	BackendsPath string `json:"backendsPath,omitempty"` 
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

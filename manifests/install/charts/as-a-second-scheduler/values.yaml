@@ -44,12 +44,13 @@ controller:
 plugins:
   enabled:
     - ArchitectureAware
+    - LoadAwareResourcesBalancedAllocation
 
   disabled: []
-  score:
-    enabled:
-      - name: QoSAware
-        weight: 
+  # score:
+  #   enabled:
+  #     - name: QoSAware
+  #       weight: 2
 #  queueSort:
 #    enabled:
 #      - SortingGpuAware
@@ -67,7 +68,7 @@ pluginConfig:
           tag: "latest-nvidia-l4t-arm64"
           backendsPath: "/backends/arm64"
         - labelValue: "orin"
-          tag: "r36"
+          tag: "latest-nvidia-l4t-arm64"
           backendsPath: "/backends/arm64"
         - labelValue: "xavier"
           tag: "beta"

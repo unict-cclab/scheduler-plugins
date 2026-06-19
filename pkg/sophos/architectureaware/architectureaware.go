@@ -20,7 +20,7 @@ import (
 const (
 	Name = "ArchitectureAware"
 	LabelKey = "nvidia.com/device-plugin.config" // chiave fissa della label sui nodi
-	envVarName       = "LOCALAI_BACKENDS_PATH"
+	backendsPathAnnotationKey = "localai-backends-path"
 )
 type ArchMapping struct {
 	LabelValue   string `json:"labelValue"`
@@ -94,21 +94,15 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context,  _ *framework.CycleSta
 			klog.Infof("[ArchitectureAware] container[%d]=%s image: %s → %s", i, c.Name, c.Image, newImage)
 		}
 
-		// (2) LOCALAI_BACKENDS_PATH: solo se backendsPath configurato E il container ha quella env var
-		if mapping.BackendsPath != "" {
-			for j, e := range c.Env {
-				if e.Name == envVarName && e.Value != mapping.BackendsPath {
-					patchOps = append(patchOps, map[string]interface{}{
-						"op":    "replace",
-						"path":  fmt.Sprintf("/spec/containers/%d/env/%d/value", i, j),
-						"value": mapping.BackendsPath,
-					})
-					klog.Infof("[ArchitectureAware] container[%d]=%s env %s: %s → %s",
-						i, c.Name, envVarName, e.Value, mapping.BackendsPath)
-					break
-				}
-			}
-		}
+	}
+	if mapping.BackendsPath != "" && pod.Annotations[backendsPathAnnotationKey] != mapping.BackendsPath {
+		patchOps = append(patchOps, map[string]interface{}{
+			"op":    "add",
+			"path":  "/metadata/annotations/" + backendsPathAnnotationKey,
+			"value": mapping.BackendsPath,
+		})
+		klog.Infof("[ArchitectureAware] annotation %s: %q → %q",
+			backendsPathAnnotationKey, pod.Annotations[backendsPathAnnotationKey], mapping.BackendsPath)
 	}
 
 	if len(patchOps) == 0 {

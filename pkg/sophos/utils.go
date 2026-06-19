@@ -253,6 +253,8 @@ func GetAppTraffic(ctx context.Context, handle framework.Handle, pod *v1.Pod, pe
 
 	return parseAnnotationFloat(deployment.Annotations, "traffic."+peerApp, "deployment", deployment.Name)
 }
+// Placeholder
+func GetGroupTraffic (){}
 
 func GetNodeCpuUsage(node *v1.Node) float64 {
 	return parseAnnotationFloat(node.Annotations, cpuUsageKey, "node", node.Name)

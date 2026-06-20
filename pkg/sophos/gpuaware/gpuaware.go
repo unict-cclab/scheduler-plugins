@@ -3,16 +3,17 @@ package gpuaware
 import (
 	"context"
 	"fmt"
-	"math"
-        metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
+	"math"
 )
 
 const (
-	Name = "GpuAware"
+	Name      = "GpuAware"
+	logPrefix = "[sophos][GpuAware]"
 )
 
 type GpuAware struct {
@@ -26,7 +27,7 @@ func (pl *GpuAware) Name() string {
 }
 
 func (pl *GpuAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.Pod, nodeName string) (int64, *framework.Status) {
-	klog.Infof("Scoring node %q for pod %q", nodeName, pod.Name)
+	klog.Infof("%s Scoring node %q for pod %q", logPrefix, nodeName, pod.Name)
 
 	node, err := pl.handle.SnapshotSharedLister().NodeInfos().Get(nodeName)
 	if err != nil {
@@ -36,25 +37,25 @@ func (pl *GpuAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 		FieldSelector: "spec.nodeName=" + nodeName,
 	})
 	if err != nil {
-		return 0, framework.NewStatus(framework.Error, fmt.Sprintf("error getting pods scheduled on node %q: %v", nodeName,err))
+		return 0, framework.NewStatus(framework.Error, fmt.Sprintf("error getting pods scheduled on node %q: %v", nodeName, err))
 	}
 
 	var podGpuRequest int64 = 0
-    for _, container := range pod.Spec.Containers {
-        if gpuQuantity, ok := container.Resources.Requests["nvidia.com/gpu.shared"]; ok {
-            podGpuRequest += gpuQuantity.Value()
-        }
-    }
+	for _, container := range pod.Spec.Containers {
+		if gpuQuantity, ok := container.Resources.Requests["nvidia.com/gpu.shared"]; ok {
+			podGpuRequest += gpuQuantity.Value()
+		}
+	}
 	var totalGpuRequested int64 = 0
-    for _, p := range pods.Items {
-        for _, container := range p.Spec.Containers {
-            if gpuQuantity, ok := container.Resources.Requests["nvidia.com/gpu.shared"]; ok {
-                totalGpuRequested += gpuQuantity.Value()
-            }
-        }
-    }
+	for _, p := range pods.Items {
+		for _, container := range p.Spec.Containers {
+			if gpuQuantity, ok := container.Resources.Requests["nvidia.com/gpu.shared"]; ok {
+				totalGpuRequested += gpuQuantity.Value()
+			}
+		}
+	}
 
-    RequestGpu := totalGpuRequested + podGpuRequest
+	RequestGpu := totalGpuRequested + podGpuRequest
 
 	gpuCapacity, ok := node.Node().Status.Capacity["nvidia.com/gpu.shared"]
 	if !ok || gpuCapacity.Value() == 0 {
@@ -63,12 +64,12 @@ func (pl *GpuAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.
 	if RequestGpu > gpuCapacity.Value() {
 		return 0, nil
 	}
-	if podGpuRequest == 0 && gpuCapacity.Value() == 0{
-		return int64(framework.MaxNodeScore),nil
+	if podGpuRequest == 0 && gpuCapacity.Value() == 0 {
+		return int64(framework.MaxNodeScore), nil
 	}
 	NormalizedRequestGpu := float64(RequestGpu) / float64(gpuCapacity.Value())
 	score := int64((1 - NormalizedRequestGpu) * float64(framework.MaxNodeScore))
-    
+
 	return score, nil
 }
 
@@ -98,8 +99,8 @@ func (pl *GpuAware) NormalizeScore(_ context.Context, _ *framework.CycleState, p
 		} else {
 			scores[i].Score = ((nodeScore.Score - lowest) * newRange / oldRange) + framework.MinNodeScore
 		}
-		klog.Infof("Original score of node %q for pod %q: %d", scores[i].Name, pod.Name, nodeScore.Score)
-		klog.Infof("Normalized score of node %q for pod %q: %d", scores[i].Name, pod.Name, scores[i].Score)
+		klog.Infof("%s Original score of node %q for pod %q: %d", logPrefix, scores[i].Name, pod.Name, nodeScore.Score)
+		klog.Infof("%s Normalized score of node %q for pod %q: %d", logPrefix, scores[i].Name, pod.Name, scores[i].Score)
 	}
 
 	return nil

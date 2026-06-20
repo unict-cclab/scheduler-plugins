@@ -15,6 +15,7 @@ import (
 )
 
 const (
+	logPrefix         = "[sophos][utils]"
 	appLabel          = "app"
 	groupLabel        = "group"
 	chainLabelPrefix  = "chain-"
@@ -50,18 +51,18 @@ func GetOwnerDeployment(ctx context.Context, handle framework.Handle, pod *v1.Po
 func sameGroup(pod *v1.Pod, peerPod *v1.Pod) bool {
 	group, ok := pod.GetLabels()[groupLabel]
 	if !ok {
-		klog.Infof("error getting group label for pod %s", pod.Name)
+		klog.Infof("%s error getting group label for pod %s", logPrefix, pod.Name)
 		return false
 	}
 
 	peerGroup, ok := peerPod.GetLabels()[groupLabel]
 	if !ok {
-		klog.Infof("error getting group label for pod %s", peerPod.Name)
+		klog.Infof("%s error getting group label for pod %s", logPrefix, peerPod.Name)
 		return false
 	}
 
 	if group != peerGroup {
-		klog.Infof("pods %s and %s do not belong to the same group", pod.Name, peerPod.Name)
+		klog.Infof("%s pods %s and %s do not belong to the same group", logPrefix, pod.Name, peerPod.Name)
 		return false
 	}
 
@@ -71,13 +72,13 @@ func sameGroup(pod *v1.Pod, peerPod *v1.Pod) bool {
 func parseAnnotationFloat(annotations map[string]string, key, objectKind, objectName string) float64 {
 	value, ok := annotations[key]
 	if !ok {
-		klog.Infof("%q annotation not found on %s %s", key, objectKind, objectName)
+		klog.Infof("%s %q annotation not found on %s %s", logPrefix, key, objectKind, objectName)
 		return 0.0
 	}
 
 	parsedValue, err := strconv.ParseFloat(value, 64)
 	if err != nil {
-		klog.Infof("error parsing %q annotation of %s %s", key, objectKind, objectName)
+		klog.Infof("%s error parsing %q annotation of %s %s", logPrefix, key, objectKind, objectName)
 		return 0.0
 	}
 
@@ -89,7 +90,7 @@ func AreLesserOrderPodsScheduled(ctx context.Context, handle framework.Handle, p
 
 	group, ok := pod.GetLabels()[groupLabel]
 	if !ok {
-		klog.Infof("error getting group label for pod %s", pod.Name)
+		klog.Infof("%s error getting group label for pod %s", logPrefix, pod.Name)
 		return false
 	}
 
@@ -97,7 +98,7 @@ func AreLesserOrderPodsScheduled(ctx context.Context, handle framework.Handle, p
 		if strings.HasPrefix(key, chainLabelPrefix) {
 			index, err := strconv.Atoi(value)
 			if err != nil {
-				klog.Infof("error parsing chain label value for pod %s", pod.Name)
+				klog.Infof("%s error parsing chain label value for pod %s", logPrefix, pod.Name)
 				return false
 			}
 
@@ -110,7 +111,7 @@ func AreLesserOrderPodsScheduled(ctx context.Context, handle framework.Handle, p
 				}
 				lesserOrderPods, err := handle.ClientSet().CoreV1().Pods(namespace).List(ctx, listOptions)
 				if err != nil {
-					klog.Infof("error getting lesser order pods for pod %s", pod.Name)
+					klog.Infof("%s error getting lesser order pods for pod %s", logPrefix, pod.Name)
 					return false
 				}
 
@@ -139,7 +140,7 @@ func ArePodsNeighbors(pod *v1.Pod, peerPod *v1.Pod) bool {
 		if strings.HasPrefix(key, chainLabelPrefix) {
 			index, err := strconv.Atoi(value)
 			if err != nil {
-				klog.Infof("error parsing chain label value for pod %s", pod.Name)
+				klog.Infof("%s error parsing chain label value for pod %s", logPrefix, pod.Name)
 				return false
 			}
 
@@ -147,11 +148,11 @@ func ArePodsNeighbors(pod *v1.Pod, peerPod *v1.Pod) bool {
 			if ok {
 				peerIndex, err := strconv.Atoi(peerValue)
 				if err != nil {
-					klog.Infof("error parsing chain label value for pod %s", peerPod.Name)
+					klog.Infof("%s error parsing chain label value for pod %s", logPrefix, peerPod.Name)
 					return false
 				}
 				if index-peerIndex == 1 || peerIndex-index == 1 {
-					klog.Infof("Pods %s and %s are neighbors", pod.Name, peerPod.Name)
+					klog.Infof("%s Pods %s and %s are neighbors", logPrefix, pod.Name, peerPod.Name)
 					return true
 				}
 			}
@@ -172,7 +173,7 @@ func GetSharedChainsSlos(pod *v1.Pod, peerPod *v1.Pod) []float64 {
 		if strings.HasPrefix(key, chainLabelPrefix) {
 			index, err := strconv.Atoi(value)
 			if err != nil {
-				klog.Infof("error parsing chain label value for pod %s", pod.Name)
+				klog.Infof("%s error parsing chain label value for pod %s", logPrefix, pod.Name)
 				return chainsSlos
 			}
 
@@ -180,11 +181,11 @@ func GetSharedChainsSlos(pod *v1.Pod, peerPod *v1.Pod) []float64 {
 			if ok {
 				peerIndex, err := strconv.Atoi(peerValue)
 				if err != nil {
-					klog.Infof("error parsing chain label value for pod %s", peerPod.Name)
+					klog.Infof("%s error parsing chain label value for pod %s", logPrefix, peerPod.Name)
 					return chainsSlos
 				}
 				if index-peerIndex == 1 || peerIndex-index == 1 {
-					klog.Infof("pods %s and %s are neighbors", pod.Name, peerPod.Name)
+					klog.Infof("%s pods %s and %s are neighbors", logPrefix, pod.Name, peerPod.Name)
 
 					chainSlo := parseAnnotationFloat(pod.GetAnnotations(), key+"-slo", "pod", pod.Name)
 					if chainSlo == 0.0 {
@@ -203,7 +204,7 @@ func GetSharedChainsSlos(pod *v1.Pod, peerPod *v1.Pod) []float64 {
 func GetAppCpuUsage(ctx context.Context, handle framework.Handle, pod *v1.Pod) float64 {
 	deployment, err := GetOwnerDeployment(ctx, handle, pod)
 	if err != nil {
-		klog.Infof("error getting owner deployment for Pod %s: %s", pod.Name, err.Error())
+		klog.Infof("%s error getting owner deployment for Pod %s: %s", logPrefix, pod.Name, err.Error())
 		return 0.0
 	}
 
@@ -213,7 +214,7 @@ func GetAppCpuUsage(ctx context.Context, handle framework.Handle, pod *v1.Pod) f
 func GetAppMemoryUsage(ctx context.Context, handle framework.Handle, pod *v1.Pod) float64 {
 	deployment, err := GetOwnerDeployment(ctx, handle, pod)
 	if err != nil {
-		klog.Infof("error getting owner deployment for Pod %s: %s", pod.Name, err.Error())
+		klog.Infof("%s error getting owner deployment for Pod %s: %s", logPrefix, pod.Name, err.Error())
 		return 0.0
 	}
 
@@ -227,7 +228,7 @@ func GetAppRequestsPerSecond(_ context.Context, _ framework.Handle, pod *v1.Pod,
 
 	peerApp, ok := peerPod.GetLabels()[appLabel]
 	if !ok {
-		klog.Infof("error getting app label for pod %s", peerPod.Name)
+		klog.Infof("%s error getting app label for pod %s", logPrefix, peerPod.Name)
 		return 0.0
 	}
 
@@ -241,13 +242,13 @@ func GetAppTraffic(ctx context.Context, handle framework.Handle, pod *v1.Pod, pe
 
 	peerApp, ok := peerPod.GetLabels()[appLabel]
 	if !ok {
-		klog.Infof("error getting app label for pod %s", peerPod.Name)
+		klog.Infof("%s error getting app label for pod %s", logPrefix, peerPod.Name)
 		return 0.0
 	}
 
 	deployment, err := GetOwnerDeployment(ctx, handle, pod)
 	if err != nil {
-		klog.Infof("error getting owner deployment for pod %s: %s", pod.Name, err.Error())
+		klog.Infof("%s error getting owner deployment for pod %s: %s", logPrefix, pod.Name, err.Error())
 		return 0.0
 	}
 

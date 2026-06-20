@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	Name = "NetworkAware"
+	Name      = "NetworkAware"
+	logPrefix = "[sophos][NetworkAware]"
 )
 
 type NetworkAware struct {
@@ -28,7 +29,7 @@ func (pl *NetworkAware) Name() string {
 }
 
 func (pl *NetworkAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.Pod, nodeName string) (int64, *framework.Status) {
-	klog.Infof("scoring node %q for pod %q", nodeName, pod.Name)
+	klog.Infof("%s scoring node %q for pod %q", logPrefix, nodeName, pod.Name)
 	var score int64
 
 	node, err := pl.handle.SnapshotSharedLister().NodeInfos().Get(nodeName)
@@ -83,8 +84,8 @@ func (pl *NetworkAware) NormalizeScore(_ context.Context, _ *framework.CycleStat
 		} else {
 			scores[i].Score = ((nodeScore.Score - lowest) * newRange / oldRange) + framework.MinNodeScore
 		}
-		klog.Infof("Original score of node %q for pod %q: %d", scores[i].Name, pod.Name, nodeScore.Score)
-		klog.Infof("Normalized score of node %q for pod %q: %d", scores[i].Name, pod.Name, scores[i].Score)
+		klog.Infof("%s Original score of node %q for pod %q: %d", logPrefix, scores[i].Name, pod.Name, nodeScore.Score)
+		klog.Infof("%s Normalized score of node %q for pod %q: %d", logPrefix, scores[i].Name, pod.Name, scores[i].Score)
 	}
 
 	return nil

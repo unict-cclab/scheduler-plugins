@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	Name = "LoadAwareMostAllocated"
+	Name      = "LoadAwareMostAllocated"
+	logPrefix = "[sophos][LoadAwareMostAllocated]"
 )
 
 type LoadAwareMostAllocated struct {
@@ -27,7 +28,7 @@ func (pl *LoadAwareMostAllocated) Name() string {
 }
 
 func (pl *LoadAwareMostAllocated) Score(ctx context.Context, _ *framework.CycleState, pod *v1.Pod, nodeName string) (int64, *framework.Status) {
-	klog.Infof("Scoring node %q for pod %q", nodeName, pod.Name)
+	klog.Infof("%s Scoring node %q for pod %q", logPrefix, nodeName, pod.Name)
 
 	node, err := pl.handle.SnapshotSharedLister().NodeInfos().Get(nodeName)
 	if err != nil {
@@ -68,8 +69,8 @@ func (pl *LoadAwareMostAllocated) NormalizeScore(_ context.Context, _ *framework
 		} else {
 			scores[i].Score = ((nodeScore.Score - lowest) * newRange / oldRange) + framework.MinNodeScore
 		}
-		klog.Infof("Original score of node %q for pod %q: %d", scores[i].Name, pod.Name, nodeScore.Score)
-		klog.Infof("Normalized score of node %q for pod %q: %d", scores[i].Name, pod.Name, scores[i].Score)
+		klog.Infof("%s Original score of node %q for pod %q: %d", logPrefix, scores[i].Name, pod.Name, nodeScore.Score)
+		klog.Infof("%s Normalized score of node %q for pod %q: %d", logPrefix, scores[i].Name, pod.Name, scores[i].Score)
 	}
 
 	return nil

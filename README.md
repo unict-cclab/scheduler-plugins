@@ -21,6 +21,35 @@ docker pull registry.k8s.io/scheduler-plugins/controller:$TAG
 
 You can find [how to install release image](doc/install.md) here.
 
+## Run locally for development
+
+The scheduler can run directly on the development host as a second scheduler
+against an existing Kubernetes cluster.
+
+1. Set `clientConnection.kubeconfig` in
+   [`local-scheduler-config.yml`](local-scheduler-config.yml) to the kubeconfig
+   of the cluster you want to use.
+2. Build and start the scheduler from this directory:
+
+   ```shell
+   make build-scheduler
+   ./bin/kube-scheduler --config=local-scheduler-config.yml --v=4
+   ```
+
+The local configuration disables leader election and registers the scheduler
+as `scheduler-plugins-scheduler`. Only Pods whose specification contains the
+following field are handled by this process; the cluster's default scheduler
+can continue running normally:
+
+```yaml
+spec:
+  schedulerName: scheduler-plugins-scheduler
+```
+
+Stop the local scheduler with `Ctrl+C`. After changing plugin code, rebuild it
+with `make build-scheduler` before starting it again. Run `make unit-test` to
+execute the unit tests.
+
 ## Plugins
 
 The kube-scheduler binary includes the below list of plugins. They can be configured by creating one or more

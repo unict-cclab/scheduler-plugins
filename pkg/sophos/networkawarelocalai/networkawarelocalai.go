@@ -50,7 +50,7 @@ func (pl *NetworkAwareLocalAi) Score(ctx context.Context, _ *framework.CycleStat
 			return 0, framework.NewStatus(framework.Error, fmt.Sprintf("error getting pods scheduled on node %q", clusterNode.Node().Name))
 		}
 
-		for _, peerPod := range pods.Items {
+		for _, _ := range pods.Items {
 			score -= int64(sophos.GetNodeLatency(node.Node(), clusterNode.Node()) * sophos.GetGroupTraffic())
 		}
 	}

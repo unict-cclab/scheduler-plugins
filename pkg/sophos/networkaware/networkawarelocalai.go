@@ -1,4 +1,4 @@
-package networkaware
+package networkawarelocalai
 
 import (
 	"context"
@@ -14,21 +14,22 @@ import (
 )
 
 const (
-	Name = "NetworkAware"
+	Name      = "NetworkAwareLocalAi"
+	logPrefix = "[sophos][NetworkAwareLocalAi]"
 )
 
-type NetworkAware struct {
+type NetworkAwareLocalAi struct {
 	handle framework.Handle
 }
 
-var _ = framework.ScorePlugin(&NetworkAware{})
+var _ = framework.ScorePlugin(&NetworkAwareLocalAi{})
 
-func (pl *NetworkAware) Name() string {
+func (pl *NetworkAwareLocalAi) Name() string {
 	return Name
 }
 
-func (pl *NetworkAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.Pod, nodeName string) (int64, *framework.Status) {
-	klog.Infof("scoring node %q for pod %q", nodeName, pod.Name)
+func (pl *NetworkAwareLocalAi) Score(ctx context.Context, _ *framework.CycleState, pod *v1.Pod, nodeName string) (int64, *framework.Status) {
+	klog.Infof("%s scoring node %q for pod %q", logPrefix, nodeName, pod.Name)
 	var score int64
 
 	node, err := pl.handle.SnapshotSharedLister().NodeInfos().Get(nodeName)
@@ -50,18 +51,18 @@ func (pl *NetworkAware) Score(ctx context.Context, _ *framework.CycleState, pod 
 		}
 
 		for _, peerPod := range pods.Items {
-			score -= int64(sophos.GetNodeLatency(node.Node(), clusterNode.Node()) * sophos.GetAppTraffic(ctx, pl.handle, pod, &peerPod))
+			score -= int64(sophos.GetNodeLatency(node.Node(), clusterNode.Node()) * sophos.GetGroupTraffic())
 		}
 	}
 
 	return score, nil
 }
 
-func (pl *NetworkAware) ScoreExtensions() framework.ScoreExtensions {
+func (pl *NetworkAwareLocalAi) ScoreExtensions() framework.ScoreExtensions {
 	return pl
 }
 
-func (pl *NetworkAware) NormalizeScore(_ context.Context, _ *framework.CycleState, pod *v1.Pod, scores framework.NodeScoreList) *framework.Status {
+func (pl *NetworkAwareLocalAi) NormalizeScore(_ context.Context, _ *framework.CycleState, pod *v1.Pod, scores framework.NodeScoreList) *framework.Status {
 	// Find highest and lowest scores.
 	var highest int64 = -math.MaxInt64
 	var lowest int64 = math.MaxInt64
@@ -83,15 +84,15 @@ func (pl *NetworkAware) NormalizeScore(_ context.Context, _ *framework.CycleStat
 		} else {
 			scores[i].Score = ((nodeScore.Score - lowest) * newRange / oldRange) + framework.MinNodeScore
 		}
-		klog.Infof("Original score of node %q for pod %q: %d", scores[i].Name, pod.Name, nodeScore.Score)
-		klog.Infof("Normalized score of node %q for pod %q: %d", scores[i].Name, pod.Name, scores[i].Score)
+		//klog.Infof("%s Original score of node %q for pod %q: %d", logPrefix, scores[i].Name, pod.Name, nodeScore.Score)
+		klog.Infof("%s Normalized score of node %q for pod %q: %d", logPrefix, scores[i].Name, pod.Name, scores[i].Score)
 	}
 
 	return nil
 }
 
 func New(_ context.Context, _ runtime.Object, handle framework.Handle) (framework.Plugin, error) {
-	pl := &NetworkAware{
+	pl := &NetworkAwareLocalAi{
 		handle: handle,
 	}
 	return pl, nil

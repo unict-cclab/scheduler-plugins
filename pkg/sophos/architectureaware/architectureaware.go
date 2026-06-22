@@ -3,25 +3,27 @@ package architectureaware
 import (
 	"context"
 	"fmt"
-    //"os"
-    "strings"
+
+	//"os"
 	"encoding/json"
-        metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strings"
+
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/scheduler-plugins/apis/config"
 	// config "github.com/unict-cclab/scheduler-plugins/apis/config"
 )
 
-
 const (
-	Name = "ArchitectureAware"
-	LabelKey = "nvidia.com/device-plugin.config" // chiave fissa della label sui nodi
+	Name                      = "ArchitectureAware"
+	LabelKey                  = "nvidia.com/device-plugin.config" // chiave fissa della label sui nodi
 	backendsPathAnnotationKey = "localai-backends-path"
 )
+
 type ArchMapping struct {
 	LabelValue   string `json:"labelValue"`
 	Tag          string `json:"tag"`
@@ -35,26 +37,25 @@ type ArchitectureAware struct {
 
 var _ = framework.PreBindPlugin(&ArchitectureAware{})
 
-
 func (pl *ArchitectureAware) Name() string {
 	return Name
 }
 
 func replaceImageTag(image, newTag string) string {
-    if newTag == "" {
-        return image
-    }
-    slashIdx := strings.LastIndex(image, "/")
-    tagSearchStart := slashIdx + 1
-    colonIdx := strings.LastIndex(image[tagSearchStart:], ":")
-    if colonIdx == -1 {
-        return image + ":" + newTag
-    }
-    return image[:tagSearchStart+colonIdx] + ":" + newTag
+	if newTag == "" {
+		return image
+	}
+	slashIdx := strings.LastIndex(image, "/")
+	tagSearchStart := slashIdx + 1
+	colonIdx := strings.LastIndex(image[tagSearchStart:], ":")
+	if colonIdx == -1 {
+		return image + ":" + newTag
+	}
+	return image[:tagSearchStart+colonIdx] + ":" + newTag
 }
 
-func (pl *ArchitectureAware) PreBind(ctx context.Context,  _ *framework.CycleState, pod *v1.Pod, nodeName string) *framework.Status{
-    klog.Infof("[ArchitectureAware] PreBind: Pod %s/%s to node %s", pod.Namespace, pod.Name, nodeName)
+func (pl *ArchitectureAware) PreBind(ctx context.Context, _ *framework.CycleState, pod *v1.Pod, nodeName string) *framework.Status {
+	klog.Infof("[ArchitectureAware] PreBind: Pod %s/%s to node %s", pod.Namespace, pod.Name, nodeName)
 
 	client := pl.handle.ClientSet()
 
@@ -64,7 +65,7 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context,  _ *framework.CycleSta
 		klog.Error(msg)
 		return framework.NewStatus(framework.Error, msg)
 	}
-    //label to choose
+	//label to choose
 	deviceType := node.Labels[LabelKey]
 	klog.Infof("[ArchitectureAware] Node %s has label %s=%s", nodeName, LabelKey, deviceType)
 
@@ -133,14 +134,14 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context,  _ *framework.CycleSta
 // }
 
 func New(_ context.Context, obj runtime.Object, handle framework.Handle) (framework.Plugin, error) {
-    args, ok := obj.(*config.ArchitectureAwareArgs)
-    if !ok {
-        return nil, fmt.Errorf("want args to be of type ArchitectureAwareArgs, got %T", obj)
-    }
+	args, ok := obj.(*config.ArchitectureAwareArgs)
+	if !ok {
+		return nil, fmt.Errorf("want args to be of type ArchitectureAwareArgs, got %T", obj)
+	}
 
-    // pl := &ArchitectureAware{
-    //     handle: handle,
-    // }
+	// pl := &ArchitectureAware{
+	//     handle: handle,
+	// }
 
 	// Trasforma la lista in una mappa
 	mappings := make(map[string]ArchMapping)
@@ -160,8 +161,8 @@ func New(_ context.Context, obj runtime.Object, handle framework.Handle) (framew
 
 	klog.Infof("[ArchitectureAware] Loaded mappings: %+v", mappings)
 	return pl, nil
-    //os.Setenv("TAG_ORIN", args.OrinTag)
-    //os.Setenv("TAG_NANO", args.NanoTag)
+	//os.Setenv("TAG_ORIN", args.OrinTag)
+	//os.Setenv("TAG_NANO", args.NanoTag)
 
-    //return pl, nil
+	//return pl, nil
 }

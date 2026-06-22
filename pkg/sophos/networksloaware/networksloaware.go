@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	Name = "NetworkSloAware"
+	Name      = "NetworkSloAware"
+	logPrefix = "[sophos][NetworkSloAware]"
 )
 
 type NetworkSloAware struct {
@@ -30,11 +31,11 @@ func (pl *NetworkSloAware) Name() string {
 
 func (pl *NetworkSloAware) PreFilter(ctx context.Context, state *framework.CycleState, pod *v1.Pod) (*framework.PreFilterResult, *framework.Status) {
 	if sophos.AreLesserOrderPodsScheduled(ctx, pl.handle, pod) {
-		klog.Infof("pod %s ready to be scheduled", pod.Name)
+		klog.Infof("%s pod %s ready to be scheduled", logPrefix, pod.Name)
 		return nil, framework.NewStatus(framework.Success, fmt.Sprintf("pod %s ready to be scheduled", pod.Name))
 	}
 
-	klog.Infof("pod %s not ready to be scheduled", pod.Name)
+	klog.Infof("%s pod %s not ready to be scheduled", logPrefix, pod.Name)
 	return nil, framework.NewStatus(framework.Code(framework.Queue), fmt.Sprintf("pod %s not ready to be scheduled", pod.Name))
 }
 
@@ -49,12 +50,12 @@ func (pl *NetworkSloAware) EventsToRegister() []framework.ClusterEventWithHint {
 }
 
 func (pl *NetworkSloAware) isSchedulableAfterPodChange(logger klog.Logger, pod *v1.Pod, oldObj, newObj interface{}) (framework.QueueingHint, error) {
-	klog.Infof("trying to renqueue pod %s", pod.Name)
+	klog.Infof("%s trying to renqueue pod %s", logPrefix, pod.Name)
 	return framework.Queue, nil
 }
 
 func (pl *NetworkSloAware) Score(ctx context.Context, _ *framework.CycleState, pod *v1.Pod, nodeName string) (int64, *framework.Status) {
-	klog.Infof("scoring node %q for pod %q", nodeName, pod.Name)
+	klog.Infof("%s scoring node %q for pod %q", logPrefix, nodeName, pod.Name)
 	var score int64
 
 	node, err := pl.handle.SnapshotSharedLister().NodeInfos().Get(nodeName)
@@ -118,8 +119,8 @@ func (pl *NetworkSloAware) NormalizeScore(_ context.Context, _ *framework.CycleS
 		} else {
 			scores[i].Score = ((nodeScore.Score - lowest) * newRange / oldRange) + framework.MinNodeScore
 		}
-		klog.Infof("Original score of node %q for pod %q: %d", scores[i].Name, pod.Name, nodeScore.Score)
-		klog.Infof("Normalized score of node %q for pod %q: %d", scores[i].Name, pod.Name, scores[i].Score)
+		klog.Infof("%s Original score of node %q for pod %q: %d", logPrefix, scores[i].Name, pod.Name, nodeScore.Score)
+		klog.Infof("%s Normalized score of node %q for pod %q: %d", logPrefix, scores[i].Name, pod.Name, scores[i].Score)
 	}
 
 	return nil

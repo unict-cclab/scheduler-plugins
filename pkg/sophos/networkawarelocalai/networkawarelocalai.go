@@ -52,41 +52,31 @@ func (pl *NetworkAwareLocalAi) Score(ctx context.Context, _ *framework.CycleStat
 func (pl *NetworkAwareLocalAi) scoreMaster(ctx context.Context, pod *v1.Pod, candidateNode *framework.NodeInfo) int64 {
 	var score int64
 
-	workerNodes := pl.getGroupPodNodes(ctx, pod, "worker")
 
-	for _, workerNodeName := range workerNodes {
-		workerNodeInfo, err := pl.handle.SnapshotSharedLister().NodeInfos().Get(workerNodeName)
-		if err != nil {
-			continue
-		}
 
-		latency := sophos.GetNodeLatency(candidateNode.Node(), workerNodeInfo.Node())
-
-		workerPods, err := pl.handle.ClientSet().CoreV1().Pods(pod.GetNamespace()).List(ctx, metav1.ListOptions{
-			FieldSelector: "spec.nodeName=" + workerNodeName,
-		})
-		if err != nil {
-			continue
-		}
-		for _, wp := range workerPods.Items {
-			traffic := sophos.GetGroupTraffic(ctx, pl.handle, pod, &wp)
-			if traffic > 0 {
-				score -= int64(latency * traffic)
-			}
-		}
+	allNodes, err := pl.handle.SnapshotSharedLister().NodeInfos().List()
+	if err != nil {
+		return 0
 	}
 
-	// Gateway traffic
-	// penalize nodes far from existing 
-	gatewayTraffic := sophos.GetGatewayTraffic(ctx, pl.handle, pod)
-	if gatewayTraffic > 0 {
-		for _, workerNodeName := range workerNodes {
-			workerNodeInfo, err := pl.handle.SnapshotSharedLister().NodeInfos().Get(workerNodeName)
-			if err != nil {
-				continue
-			}
-			latency := sophos.GetNodeLatency(candidateNode.Node(), workerNodeInfo.Node())
-			score -= int64(latency * gatewayTraffic)
+	var totalLatency float64
+	var count float64
+	for _, otherNode := range allNodes {
+		if otherNode.Node().Name == candidateNode.Node().Name {
+			continue
+		}
+		totalLatency += sophos.GetNodeLatency(candidateNode.Node(), otherNode.Node())
+		count++
+	}
+
+	if count > 0 {
+		avgLatency := totalLatency / count
+		gatewayTraffic := sophos.GetGatewayTraffic(ctx, pl.handle, pod)
+		if gatewayTraffic > 0 {
+			score -= int64(avgLatency * gatewayTraffic)
+		} else {
+			// First deploy without warmup(only to evict problem): use constant value
+			score -= int64(avgLatency * 1000)
 		}
 	}
 

@@ -299,6 +299,7 @@ func autoConvert_v1_DeviceMapping_To_config_DeviceMapping(in *DeviceMapping, out
 	out.LabelValue = in.LabelValue
 	out.Tag = in.Tag
 	out.BackendsPath = in.BackendsPath
+	out.Args = *(*[]string)(unsafe.Pointer(&in.Args))
 	return nil
 }
 
@@ -311,6 +312,7 @@ func autoConvert_config_DeviceMapping_To_v1_DeviceMapping(in *config.DeviceMappi
 	out.LabelValue = in.LabelValue
 	out.Tag = in.Tag
 	out.BackendsPath = in.BackendsPath
+	out.Args = *(*[]string)(unsafe.Pointer(&in.Args))
 	return nil
 }
 

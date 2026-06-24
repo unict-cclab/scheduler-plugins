@@ -254,11 +254,55 @@ func GetAppTraffic(ctx context.Context, handle framework.Handle, pod *v1.Pod, pe
 
 	return parseAnnotationFloat(deployment.Annotations, "traffic."+peerApp, "deployment", deployment.Name)
 }
-// Placeholder
-func GetGroupTraffic () float64{
-	return 0.0
+func GetGroupTraffic(ctx context.Context, handle framework.Handle, pod *v1.Pod, peerPod *v1.Pod) float64 {
+	if !sameGroup(pod, peerPod) {
+		return 0.0
+	}
+
+	podRole := pod.GetLabels()["role"]
+	peerRole := peerPod.GetLabels()["role"]
+	if podRole == peerRole || podRole == "" || peerRole == "" {
+		return 0.0
+	}
+
+	peerApp, ok := peerPod.GetLabels()[appLabel]
+	if !ok {
+		klog.Infof("%s error getting app label for pod %s", logPrefix, peerPod.Name)
+		return 0.0
+	}
+
+	deployment, err := GetOwnerDeployment(ctx, handle, pod)
+	if err != nil {
+		klog.Infof("%s error getting owner deployment for pod %s: %s", logPrefix, pod.Name, err.Error())
+		return 0.0
+	}
+
+	return parseAnnotationFloat(deployment.Annotations, "traffic."+peerApp, "deployment", deployment.Name)
 }
 
+func GetGatewayTraffic(ctx context.Context, handle framework.Handle, pod *v1.Pod) float64 {
+	group, ok := pod.GetLabels()[groupLabel]
+	if !ok {
+		return 0.0
+	}
+
+	masterPods, err := handle.ClientSet().CoreV1().Pods(pod.GetNamespace()).List(ctx, metav1.ListOptions{
+		LabelSelector: labels.Set{
+			groupLabel: group,
+			"role":     "master",
+		}.String(),
+	})
+	if err != nil || len(masterPods.Items) == 0 {
+		return 0.0
+	}
+
+	deployment, err := GetOwnerDeployment(ctx, handle, &masterPods.Items[0])
+	if err != nil {
+		return 0.0
+	}
+
+	return parseAnnotationFloat(deployment.Annotations, "gateway-traffic", "deployment", deployment.Name)
+}
 func GetNodeCpuUsage(node *v1.Node) float64 {
 	return parseAnnotationFloat(node.Annotations, cpuUsageKey, "node", node.Name)
 }

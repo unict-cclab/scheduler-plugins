@@ -72,7 +72,7 @@ func main() {
 		app.WithPlugin(qos.Name, qos.New),
 		app.WithPlugin(loadawareresourcesbalancedallocation.Name, loadawareresourcesbalancedallocation.New),
 		app.WithPlugin(networkaware.Name, networkaware.New),
-		app.WithPlugin(networkaware.Name, networkawarelocalai.New),
+		app.WithPlugin(networkawarelocalai.Name, networkawarelocalai.New),
 		app.WithPlugin(networksloaware.Name, networksloaware.New),
 		app.WithPlugin(gpuaware.Name, gpuaware.New),
 		app.WithPlugin(architectureaware.Name, architectureaware.New),

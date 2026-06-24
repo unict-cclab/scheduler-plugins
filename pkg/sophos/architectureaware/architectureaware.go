@@ -2,10 +2,8 @@ package architectureaware
 
 import (
 	"context"
-	"fmt"
-
-	//"os"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
@@ -15,19 +13,20 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"sigs.k8s.io/scheduler-plugins/apis/config"
-	// config "github.com/unict-cclab/scheduler-plugins/apis/config"
 )
 
 const (
 	Name                      = "ArchitectureAware"
-	LabelKey                  = "nvidia.com/device-plugin.config" // chiave fissa della label sui nodi
+	LabelKey                  = "nvidia.com/device-plugin.config"
 	backendsPathAnnotationKey = "localai-backends-path"
+	workerArgsAnnotationKey   = "localai-worker-args"
 )
 
 type ArchMapping struct {
-	LabelValue   string `json:"labelValue"`
-	Tag          string `json:"tag"`
-	BackendsPath string `json:"backendsPath,omitempty"`
+	LabelValue   string   `json:"labelValue"`
+	Tag          string   `json:"tag"`
+	BackendsPath string   `json:"backendsPath,omitempty"`
+	Args         []string `json:"args,omitempty"`
 }
 
 type ArchitectureAware struct {
@@ -65,7 +64,7 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context, _ *framework.CycleStat
 		klog.Error(msg)
 		return framework.NewStatus(framework.Error, msg)
 	}
-	//label to choose
+
 	deviceType := node.Labels[LabelKey]
 	klog.Infof("[ArchitectureAware] Node %s has label %s=%s", nodeName, LabelKey, deviceType)
 
@@ -75,16 +74,14 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context, _ *framework.CycleStat
 		return framework.NewStatus(framework.Success, "")
 	}
 
-	// Nomi container patchabili (nn = legacy, local-ai = master LocalAI, worker = worker LocalAI)
 	patchable := map[string]bool{"nn": true, "local-ai": true, "worker": true}
-
 	patchOps := []map[string]interface{}{}
 
+	// Patch immagine
 	for i, c := range pod.Spec.Containers {
 		if !patchable[c.Name] {
 			continue
 		}
-
 		newImage := replaceImageTag(c.Image, mapping.Tag)
 		if newImage != c.Image {
 			patchOps = append(patchOps, map[string]interface{}{
@@ -94,16 +91,32 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context, _ *framework.CycleStat
 			})
 			klog.Infof("[ArchitectureAware] container[%d]=%s image: %s → %s", i, c.Name, c.Image, newImage)
 		}
-
 	}
+
+	// Patch backends path annotation
 	if mapping.BackendsPath != "" && pod.Annotations[backendsPathAnnotationKey] != mapping.BackendsPath {
 		patchOps = append(patchOps, map[string]interface{}{
-			"op":    "add",
+			"op":    "replace",
 			"path":  "/metadata/annotations/" + backendsPathAnnotationKey,
 			"value": mapping.BackendsPath,
 		})
 		klog.Infof("[ArchitectureAware] annotation %s: %q → %q",
 			backendsPathAnnotationKey, pod.Annotations[backendsPathAnnotationKey], mapping.BackendsPath)
+	}
+
+	// Patch worker-args annotation — solo per pod con role=worker
+	role := pod.Labels["role"]
+	if role == "worker" && len(mapping.Args) > 0 {
+		argsStr := strings.Join(mapping.Args, " ")
+		if pod.Annotations[workerArgsAnnotationKey] != argsStr {
+			patchOps = append(patchOps, map[string]interface{}{
+				"op":    "replace",
+				"path":  "/metadata/annotations/" + workerArgsAnnotationKey,
+				"value": argsStr,
+			})
+			klog.Infof("[ArchitectureAware] annotation %s: %q → %q",
+				workerArgsAnnotationKey, pod.Annotations[workerArgsAnnotationKey], argsStr)
+		}
 	}
 
 	if len(patchOps) == 0 {
@@ -123,15 +136,7 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context, _ *framework.CycleStat
 
 	klog.Infof("[ArchitectureAware] Applied %d patch op(s) to Pod %s/%s", len(patchOps), pod.Namespace, pod.Name)
 	return framework.NewStatus(framework.Success, "")
-
 }
-
-// func New(_ context.Context, _ runtime.Object, handle framework.Handle) (framework.Plugin, error) {
-// 	pl := &ArchitectureAware{
-// 		handle: handle,
-// 	}
-// 	return pl, nil
-// }
 
 func New(_ context.Context, obj runtime.Object, handle framework.Handle) (framework.Plugin, error) {
 	args, ok := obj.(*config.ArchitectureAwareArgs)
@@ -139,11 +144,6 @@ func New(_ context.Context, obj runtime.Object, handle framework.Handle) (framew
 		return nil, fmt.Errorf("want args to be of type ArchitectureAwareArgs, got %T", obj)
 	}
 
-	// pl := &ArchitectureAware{
-	//     handle: handle,
-	// }
-
-	// Trasforma la lista in una mappa
 	mappings := make(map[string]ArchMapping)
 	for _, m := range args.Mappings {
 		if m.LabelValue != "" && m.Tag != "" {
@@ -151,9 +151,11 @@ func New(_ context.Context, obj runtime.Object, handle framework.Handle) (framew
 				LabelValue:   m.LabelValue,
 				Tag:          m.Tag,
 				BackendsPath: m.BackendsPath,
+				Args:         m.Args,
 			}
 		}
 	}
+
 	pl := &ArchitectureAware{
 		handle:   handle,
 		mappings: mappings,
@@ -161,8 +163,4 @@ func New(_ context.Context, obj runtime.Object, handle framework.Handle) (framew
 
 	klog.Infof("[ArchitectureAware] Loaded mappings: %+v", mappings)
 	return pl, nil
-	//os.Setenv("TAG_ORIN", args.OrinTag)
-	//os.Setenv("TAG_NANO", args.NanoTag)
-
-	//return pl, nil
 }

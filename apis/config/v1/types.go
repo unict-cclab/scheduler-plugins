@@ -54,6 +54,7 @@ type DeviceMapping struct {
 	LabelValue string `json:"labelValue,omitempty"`
 	Tag        string `json:"tag,omitempty"`
 	BackendsPath string `json:"backendsPath,omitempty"` 
+	Args         []string `json:"args,omitempty"`  
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

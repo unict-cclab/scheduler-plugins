@@ -280,8 +280,7 @@ func GetGroupTraffic(ctx context.Context, handle framework.Handle, pod *v1.Pod, 
 	return parseAnnotationFloat(deployment.Annotations, "traffic."+peerApp, "deployment", deployment.Name)
 }
 
-func GetGatewayTraffic(ctx context.Context, handle framework.Handle, pod *v1.Pod) float64 {
-	group, ok := pod.GetLabels()[groupLabel]
+func GetGatewayTraffic(ctx context.Context, handle framework.Handle, pod *v1.Pod, annotationKey string) float64 {	group, ok := pod.GetLabels()[groupLabel]
 	if !ok {
 		return 0.0
 	}
@@ -301,7 +300,7 @@ func GetGatewayTraffic(ctx context.Context, handle framework.Handle, pod *v1.Pod
 		return 0.0
 	}
 
-	return parseAnnotationFloat(deployment.Annotations, "gateway-traffic", "deployment", deployment.Name)
+	return parseAnnotationFloat(deployment.Annotations, annotationKey, "deployment", deployment.Name)
 }
 func GetNodeCpuUsage(node *v1.Node) float64 {
 	return parseAnnotationFloat(node.Annotations, cpuUsageKey, "node", node.Name)

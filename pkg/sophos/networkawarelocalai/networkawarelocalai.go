@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
-
+	"os"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -17,12 +17,12 @@ import (
 const (
 	Name      = "NetworkAwareLocalAi"
 	logPrefix = "[sophos][NetworkAwareLocalAi]"
-	gatewayTrafficEnv        = "GATEWAY_TRAFFIC_KEY"
 	defaultGatewayTrafficKey = "gateway-traffic"
 )
 
 type NetworkAwareLocalAi struct {
 	handle framework.Handle
+	gatewayTrafficKey  string
 }
 
 var _ = framework.ScorePlugin(&NetworkAwareLocalAi{})
@@ -30,16 +30,7 @@ var _ = framework.ScorePlugin(&NetworkAwareLocalAi{})
 func (pl *NetworkAwareLocalAi) Name() string {
 	return Name
 }
-func getGatewayTrafficKey(pod *v1.Pod) string {
-	for _, c := range pod.Spec.Containers {
-		for _, env := range c.Env {
-			if env.Name == gatewayTrafficEnv {
-				return env.Value
-			}
-		}
-	}
-	return defaultGatewayTrafficKey
-}
+
 func (pl *NetworkAwareLocalAi) Score(ctx context.Context, _ *framework.CycleState, pod *v1.Pod, nodeName string) (int64, *framework.Status) {
 	klog.Infof("%s scoring node %q for pod %q", logPrefix, nodeName, pod.Name)
 
@@ -83,7 +74,7 @@ func (pl *NetworkAwareLocalAi) scoreMaster(ctx context.Context, pod *v1.Pod, can
 
 	if count > 0 {
 		avgLatency := totalLatency / count
-		gatewayTraffic := sophos.GetGatewayTraffic(ctx, pl.handle, pod, getGatewayTrafficKey(pod))
+		gatewayTraffic := sophos.GetGatewayTraffic(ctx, pl.handle, pod, pl.gatewayTrafficKey)
 		if gatewayTraffic > 0 {
 			score -= int64(avgLatency * gatewayTraffic)
 		} else {
@@ -125,7 +116,7 @@ func (pl *NetworkAwareLocalAi) scoreWorker(ctx context.Context, pod *v1.Pod, can
 
 	// gateway traffic × latency to master
 	// More incoming requests =  closer to master
-	gatewayTraffic := sophos.GetGatewayTraffic(ctx, pl.handle, pod, getGatewayTrafficKey(pod))
+	gatewayTraffic := sophos.GetGatewayTraffic(ctx, pl.handle, pod, pl.gatewayTrafficKey)
 	score -= int64(latencyToMaster * gatewayTraffic)
 
 	return score
@@ -187,6 +178,15 @@ func (pl *NetworkAwareLocalAi) NormalizeScore(_ context.Context, _ *framework.Cy
 	return nil
 }
 
+
 func New(_ context.Context, _ runtime.Object, handle framework.Handle) (framework.Plugin, error) {
-	return &NetworkAwareLocalAi{handle: handle}, nil
+	key := os.Getenv("GATEWAY_TRAFFIC_KEY")
+	if key == "" {
+		key = defaultGatewayTrafficKey
+	}
+	klog.Infof("%s using gateway traffic annotation key: %s", logPrefix, key)
+	return &NetworkAwareLocalAi{
+		handle:            handle,
+		gatewayTrafficKey: key,
+	}, nil
 }

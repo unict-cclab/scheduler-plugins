@@ -48,7 +48,7 @@ func GetOwnerDeployment(ctx context.Context, handle framework.Handle, pod *v1.Po
 	return deployment, nil
 }
 
-func sameGroup(pod *v1.Pod, peerPod *v1.Pod) bool {
+func SameGroup(pod *v1.Pod, peerPod *v1.Pod) bool {
 	group, ok := pod.GetLabels()[groupLabel]
 	if !ok {
 		klog.Infof("%s error getting group label for pod %s", logPrefix, pod.Name)
@@ -69,7 +69,7 @@ func sameGroup(pod *v1.Pod, peerPod *v1.Pod) bool {
 	return true
 }
 
-func parseAnnotationFloat(annotations map[string]string, key, objectKind, objectName string) float64 {
+func ParseAnnotationFloat(annotations map[string]string, key, objectKind, objectName string) float64 {
 	value, ok := annotations[key]
 	if !ok {
 		klog.Infof("%s %q annotation not found on %s %s", logPrefix, key, objectKind, objectName)
@@ -83,6 +83,20 @@ func parseAnnotationFloat(annotations map[string]string, key, objectKind, object
 	}
 
 	return parsedValue
+}
+
+func GetAppTrafficFromDeployment(deployment *appsv1.Deployment, peerPod *v1.Pod) float64 {
+	if deployment == nil {
+		return 0.0
+	}
+
+	peerApp, ok := peerPod.GetLabels()[appLabel]
+	if !ok {
+		klog.Infof("%s error getting app label for pod %s", logPrefix, peerPod.Name)
+		return 0.0
+	}
+
+	return ParseAnnotationFloat(deployment.Annotations, "traffic."+peerApp, "deployment", deployment.Name)
 }
 
 func AreLesserOrderPodsScheduled(ctx context.Context, handle framework.Handle, pod *v1.Pod) bool {
@@ -132,7 +146,7 @@ func AreLesserOrderPodsScheduled(ctx context.Context, handle framework.Handle, p
 }
 
 func ArePodsNeighbors(pod *v1.Pod, peerPod *v1.Pod) bool {
-	if !sameGroup(pod, peerPod) {
+	if !SameGroup(pod, peerPod) {
 		return false
 	}
 
@@ -165,7 +179,7 @@ func ArePodsNeighbors(pod *v1.Pod, peerPod *v1.Pod) bool {
 func GetSharedChainsSlos(pod *v1.Pod, peerPod *v1.Pod) []float64 {
 	var chainsSlos []float64
 
-	if !sameGroup(pod, peerPod) {
+	if !SameGroup(pod, peerPod) {
 		return chainsSlos
 	}
 
@@ -187,7 +201,7 @@ func GetSharedChainsSlos(pod *v1.Pod, peerPod *v1.Pod) []float64 {
 				if index-peerIndex == 1 || peerIndex-index == 1 {
 					klog.Infof("%s pods %s and %s are neighbors", logPrefix, pod.Name, peerPod.Name)
 
-					chainSlo := parseAnnotationFloat(pod.GetAnnotations(), key+"-slo", "pod", pod.Name)
+					chainSlo := ParseAnnotationFloat(pod.GetAnnotations(), key+"-slo", "pod", pod.Name)
 					if chainSlo == 0.0 {
 						return chainsSlos
 					}
@@ -208,7 +222,7 @@ func GetAppCpuUsage(ctx context.Context, handle framework.Handle, pod *v1.Pod) f
 		return 0.0
 	}
 
-	return parseAnnotationFloat(deployment.Annotations, cpuUsageKey, "deployment", deployment.Name)
+	return ParseAnnotationFloat(deployment.Annotations, cpuUsageKey, "deployment", deployment.Name)
 }
 
 func GetAppMemoryUsage(ctx context.Context, handle framework.Handle, pod *v1.Pod) float64 {
@@ -218,11 +232,11 @@ func GetAppMemoryUsage(ctx context.Context, handle framework.Handle, pod *v1.Pod
 		return 0.0
 	}
 
-	return parseAnnotationFloat(deployment.Annotations, memoryUsageKey, "deployment", deployment.Name)
+	return ParseAnnotationFloat(deployment.Annotations, memoryUsageKey, "deployment", deployment.Name)
 }
 
 func GetAppRequestsPerSecond(_ context.Context, _ framework.Handle, pod *v1.Pod, peerPod *v1.Pod) float64 {
-	if !sameGroup(pod, peerPod) {
+	if !SameGroup(pod, peerPod) {
 		return 0.0
 	}
 
@@ -232,17 +246,11 @@ func GetAppRequestsPerSecond(_ context.Context, _ framework.Handle, pod *v1.Pod,
 		return 0.0
 	}
 
-	return parseAnnotationFloat(pod.GetAnnotations(), "rps."+peerApp, "pod", pod.Name)
+	return ParseAnnotationFloat(pod.GetAnnotations(), "rps."+peerApp, "pod", pod.Name)
 }
 
 func GetAppTraffic(ctx context.Context, handle framework.Handle, pod *v1.Pod, peerPod *v1.Pod) float64 {
-	if !sameGroup(pod, peerPod) {
-		return 0.0
-	}
-
-	peerApp, ok := peerPod.GetLabels()[appLabel]
-	if !ok {
-		klog.Infof("%s error getting app label for pod %s", logPrefix, peerPod.Name)
+	if !SameGroup(pod, peerPod) {
 		return 0.0
 	}
 
@@ -252,7 +260,7 @@ func GetAppTraffic(ctx context.Context, handle framework.Handle, pod *v1.Pod, pe
 		return 0.0
 	}
 
-	return parseAnnotationFloat(deployment.Annotations, "traffic."+peerApp, "deployment", deployment.Name)
+	return GetAppTrafficFromDeployment(deployment, peerPod)
 }
 func GetGroupTraffic(ctx context.Context, handle framework.Handle, pod *v1.Pod, peerPod *v1.Pod) float64 {
 	if !sameGroup(pod, peerPod) {
@@ -303,13 +311,13 @@ func GetGatewayTraffic(ctx context.Context, handle framework.Handle, pod *v1.Pod
 	return parseAnnotationFloat(deployment.Annotations, annotationKey, "deployment", deployment.Name)
 }
 func GetNodeCpuUsage(node *v1.Node) float64 {
-	return parseAnnotationFloat(node.Annotations, cpuUsageKey, "node", node.Name)
+	return ParseAnnotationFloat(node.Annotations, cpuUsageKey, "node", node.Name)
 }
 
 func GetNodeMemoryUsage(node *v1.Node) float64 {
-	return parseAnnotationFloat(node.Annotations, memoryUsageKey, "node", node.Name)
+	return ParseAnnotationFloat(node.Annotations, memoryUsageKey, "node", node.Name)
 }
 
 func GetNodeLatency(node *v1.Node, peerNode *v1.Node) float64 {
-	return parseAnnotationFloat(node.Annotations, networkLatencyKey+peerNode.Name, "node", node.Name)
+	return ParseAnnotationFloat(node.Annotations, networkLatencyKey+peerNode.Name, "node", node.Name)
 }

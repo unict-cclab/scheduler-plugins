@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
+	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/queuesort"
 	"sigs.k8s.io/scheduler-plugins/pkg/sophos"
 )
 
@@ -27,23 +28,15 @@ type NetworkAware struct {
 
 type preScoreState struct {
 	peers         []peerPlacement
-	latencyByNode map[string][]float64
-	maxLatency    float64
+	metricsByNode map[string][]nodeNetworkMetrics
 	maxTraffic    float64
+	maxMetrics    nodeNetworkMetrics
 }
 
-func (s *preScoreState) Clone() framework.StateData {
-	clone := &preScoreState{
-		peers:         make([]peerPlacement, len(s.peers)),
-		latencyByNode: make(map[string][]float64, len(s.latencyByNode)),
-		maxLatency:    s.maxLatency,
-		maxTraffic:    s.maxTraffic,
-	}
-	copy(clone.peers, s.peers)
-	for nodeName, latencies := range s.latencyByNode {
-		clone.latencyByNode[nodeName] = append([]float64(nil), latencies...)
-	}
-	return clone
+type nodeNetworkMetrics struct {
+	latency    float64
+	bandwidth  float64
+	packetLoss float64
 }
 
 type peerPlacement struct {
@@ -51,11 +44,39 @@ type peerPlacement struct {
 	traffic float64
 }
 
-var _ = framework.ScorePlugin(&NetworkAware{})
 var _ = framework.PreScorePlugin(&NetworkAware{})
+var _ = framework.QueueSortPlugin(&NetworkAware{})
+var _ = framework.ScorePlugin(&NetworkAware{})
 
 func (pl *NetworkAware) Name() string {
 	return Name
+}
+
+func (pl *NetworkAware) Less(pInfo1, pInfo2 *framework.QueuedPodInfo) bool {
+	p1 := pInfo1.Pod
+	p2 := pInfo2.Pod
+
+	index1, ok1 := sophos.GetPodIndex(p1)
+	index2, ok2 := sophos.GetPodIndex(p2)
+	if ok1 && ok2 && index1 != index2 {
+		return index1 < index2
+	}
+
+	return (&queuesort.PrioritySort{}).Less(pInfo1, pInfo2)
+}
+
+func (s *preScoreState) Clone() framework.StateData {
+	clone := &preScoreState{
+		peers:         make([]peerPlacement, len(s.peers)),
+		metricsByNode: make(map[string][]nodeNetworkMetrics, len(s.metricsByNode)),
+		maxTraffic:    s.maxTraffic,
+		maxMetrics:    s.maxMetrics,
+	}
+	copy(clone.peers, s.peers)
+	for nodeName, metrics := range s.metricsByNode {
+		clone.metricsByNode[nodeName] = append([]nodeNetworkMetrics(nil), metrics...)
+	}
+	return clone
 }
 
 func (pl *NetworkAware) PreScore(ctx context.Context, state *framework.CycleState, pod *v1.Pod, nodes []*framework.NodeInfo) *framework.Status {
@@ -83,18 +104,11 @@ func (pl *NetworkAware) PreScore(ctx context.Context, state *framework.CycleStat
 		}
 	}
 
-	candidateByName := make(map[string]*v1.Node, len(nodes))
-	for _, nodeInfo := range nodes {
-		if nodeInfo.Node() != nil {
-			candidateByName[nodeInfo.Node().Name] = nodeInfo.Node()
-		}
-	}
-
 	peers := make([]peerPlacement, 0, len(pods.Items))
 	maxTraffic := 0.0
 	for i := range pods.Items {
 		peerPod := &pods.Items[i]
-		if peerPod.Spec.NodeName == "" || !sophos.SameGroup(pod, peerPod) {
+		if peerPod.Spec.NodeName == "" || !sophos.SameGroup(pod, peerPod) || !sophos.HasLowerOrEqualIndex(pod, peerPod) {
 			continue
 		}
 		if _, ok := nodeByName[peerPod.Spec.NodeName]; !ok {
@@ -110,25 +124,39 @@ func (pl *NetworkAware) PreScore(ctx context.Context, state *framework.CycleStat
 		peers = append(peers, peerPlacement{node: nodeByName[peerPod.Spec.NodeName], traffic: traffic})
 	}
 
-	maxLatency := 0.0
-	latencyByNode := make(map[string][]float64, len(candidateByName))
-	for nodeName, candidate := range candidateByName {
-		latencies := make([]float64, 0, len(peers))
-		for _, peer := range peers {
-			latency := sophos.GetNodeLatency(candidate, peer.node)
-			if latency > maxLatency {
-				maxLatency = latency
-			}
-			latencies = append(latencies, latency)
+	metricsByNode := make(map[string][]nodeNetworkMetrics, len(nodes))
+	maxMetrics := nodeNetworkMetrics{}
+	for _, nodeInfo := range nodes {
+		candidate := nodeInfo.Node()
+		if candidate == nil {
+			continue
 		}
-		latencyByNode[nodeName] = latencies
+		metricsForNode := make([]nodeNetworkMetrics, 0, len(peers))
+		for _, peer := range peers {
+			metrics := nodeNetworkMetrics{
+				latency:    sophos.GetNodeLatency(candidate, peer.node),
+				bandwidth:  sophos.GetNodeBandwidth(candidate, peer.node),
+				packetLoss: sophos.GetNodePacketLoss(candidate, peer.node),
+			}
+			if metrics.latency > maxMetrics.latency {
+				maxMetrics.latency = metrics.latency
+			}
+			if metrics.bandwidth > maxMetrics.bandwidth {
+				maxMetrics.bandwidth = metrics.bandwidth
+			}
+			if metrics.packetLoss > maxMetrics.packetLoss {
+				maxMetrics.packetLoss = metrics.packetLoss
+			}
+			metricsForNode = append(metricsForNode, metrics)
+		}
+		metricsByNode[candidate.Name] = metricsForNode
 	}
 
 	state.Write(preScoreStateKey, &preScoreState{
 		peers:         peers,
-		latencyByNode: latencyByNode,
-		maxLatency:    maxLatency,
+		metricsByNode: metricsByNode,
 		maxTraffic:    maxTraffic,
+		maxMetrics:    maxMetrics,
 	})
 	return nil
 }
@@ -146,14 +174,17 @@ func (pl *NetworkAware) Score(_ context.Context, state *framework.CycleState, po
 		return 0, framework.NewStatus(framework.Error, fmt.Sprintf("invalid %s state type %T", Name, rawState))
 	}
 
-	latencies, ok := preScore.latencyByNode[nodeName]
+	metrics, ok := preScore.metricsByNode[nodeName]
 	if !ok {
-		return 0, framework.NewStatus(framework.Error, fmt.Sprintf("latencies for node %q not found in %s state", nodeName, Name))
+		return 0, framework.NewStatus(framework.Error, fmt.Sprintf("network metrics for node %q not found in %s state", nodeName, Name))
 	}
 
 	cost := 0.0
 	for i, peer := range preScore.peers {
-		cost += normalizedProduct(latencies[i], preScore.maxLatency, peer.traffic, preScore.maxTraffic)
+		if i >= len(metrics) {
+			return 0, framework.NewStatus(framework.Error, fmt.Sprintf("network metrics for node %q are incomplete in %s state", nodeName, Name))
+		}
+		cost += communicationCost(metrics[i], preScore.maxMetrics, peer.traffic, preScore.maxTraffic)
 	}
 
 	return -int64(math.Round(cost * scoreScale)), nil
@@ -199,9 +230,43 @@ func New(_ context.Context, _ runtime.Object, handle framework.Handle) (framewor
 	return pl, nil
 }
 
-func normalizedProduct(latency, maxLatency, traffic, maxTraffic float64) float64 {
-	if latency <= 0 || maxLatency <= 0 || traffic <= 0 || maxTraffic <= 0 {
+func communicationCost(metrics, maxMetrics nodeNetworkMetrics, traffic, maxTraffic float64) float64 {
+	if traffic <= 0 || maxTraffic <= 0 {
 		return 0
 	}
-	return (latency / maxLatency) * (traffic / maxTraffic)
+
+	trafficRatio := traffic / maxTraffic
+	if trafficRatio > 1 {
+		trafficRatio = 1
+	}
+
+	latencyRatio := 0.0
+	if metrics.latency > 0 && maxMetrics.latency > 0 {
+		latencyRatio = metrics.latency / maxMetrics.latency
+	}
+	if latencyRatio > 1 {
+		latencyRatio = 1
+	}
+
+	bandwidthRatio := 0.0
+	if maxMetrics.bandwidth > 0 {
+		if metrics.bandwidth <= 0 {
+			bandwidthRatio = 1
+		} else {
+			bandwidthRatio = 1 - metrics.bandwidth/maxMetrics.bandwidth
+			if bandwidthRatio < 0 {
+				bandwidthRatio = 0
+			}
+		}
+	}
+
+	packetLossRatio := 0.0
+	if metrics.packetLoss > 0 && maxMetrics.packetLoss > 0 {
+		packetLossRatio = metrics.packetLoss / maxMetrics.packetLoss
+	}
+	if packetLossRatio > 1 {
+		packetLossRatio = 1
+	}
+
+	return trafficRatio * (latencyRatio + bandwidthRatio + packetLossRatio)
 }

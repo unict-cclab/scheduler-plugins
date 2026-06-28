@@ -15,13 +15,16 @@ import (
 )
 
 const (
-	logPrefix         = "[sophos][utils]"
-	appLabel          = "app"
-	groupLabel        = "group"
-	chainLabelPrefix  = "chain-"
-	cpuUsageKey       = "cpu-usage"
-	memoryUsageKey    = "memory-usage"
-	networkLatencyKey = "network-latency."
+	logPrefix           = "[sophos][utils]"
+	appLabel            = "app"
+	groupLabel          = "group"
+	indexLabel          = "index"
+	chainLabelPrefix    = "chain-"
+	cpuUsageKey         = "cpu-usage"
+	memoryUsageKey      = "memory-usage"
+	networkLatencyKey   = "network-latency."
+	networkBandwidthKey = "network-bandwidth."
+	packetLossKey       = "packet-loss."
 )
 
 func GetOwnerDeployment(ctx context.Context, handle framework.Handle, pod *v1.Pod) (*appsv1.Deployment, error) {
@@ -67,6 +70,34 @@ func SameGroup(pod *v1.Pod, peerPod *v1.Pod) bool {
 	}
 
 	return true
+}
+
+func GetPodIndex(pod *v1.Pod) (int, bool) {
+	value, ok := pod.GetLabels()[indexLabel]
+	if !ok {
+		return 0, false
+	}
+	index, err := strconv.Atoi(value)
+	if err != nil {
+		klog.Infof("%s error parsing index label value for pod %s", logPrefix, pod.Name)
+		return 0, false
+	}
+	return index, true
+}
+
+func HasLowerOrEqualIndex(pod *v1.Pod, peerPod *v1.Pod) bool {
+	index, ok := GetPodIndex(pod)
+	if !ok {
+		return true
+	}
+
+	peerIndex, ok := GetPodIndex(peerPod)
+	if !ok {
+		klog.Infof("%s index label not found for peer pod %s", logPrefix, peerPod.Name)
+		return false
+	}
+
+	return peerIndex <= index
 }
 
 func ParseAnnotationFloat(annotations map[string]string, key, objectKind, objectName string) float64 {
@@ -321,4 +352,12 @@ func GetNodeMemoryUsage(node *v1.Node) float64 {
 
 func GetNodeLatency(node *v1.Node, peerNode *v1.Node) float64 {
 	return ParseAnnotationFloat(node.Annotations, networkLatencyKey+peerNode.Name, "node", node.Name)
+}
+
+func GetNodeBandwidth(node *v1.Node, peerNode *v1.Node) float64 {
+	return ParseAnnotationFloat(node.Annotations, networkBandwidthKey+peerNode.Name, "node", node.Name)
+}
+
+func GetNodePacketLoss(node *v1.Node, peerNode *v1.Node) float64 {
+	return ParseAnnotationFloat(node.Annotations, packetLossKey+peerNode.Name, "node", node.Name)
 }

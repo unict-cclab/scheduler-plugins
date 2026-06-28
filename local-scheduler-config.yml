@@ -10,9 +10,14 @@ clientConnection:
 profiles:
 - schedulerName: scheduler-plugins-scheduler
   plugins:
+    queueSort:
+      enabled:
+      - name: NetworkAware
+      disabled:
+      - name: "*"
     multiPoint:
       enabled:
       - name: NetworkAware
         weight: 1
-      - name: LoadAwareResourcesBalancedAllocation
-        weight: 1
+      #- name: LoadAwareResourcesBalancedAllocation
+      #  weight: 1

@@ -55,8 +55,6 @@ func (pl *NetworkAwareLocalAi) Score(ctx context.Context, _ *framework.CycleStat
 func (pl *NetworkAwareLocalAi) scoreMaster(ctx context.Context, pod *v1.Pod, candidateNode *framework.NodeInfo) int64 {
 	var score int64
 
-
-
 	allNodes, err := pl.handle.SnapshotSharedLister().NodeInfos().List()
 	if err != nil {
 		return 0
@@ -68,7 +66,13 @@ func (pl *NetworkAwareLocalAi) scoreMaster(ctx context.Context, pod *v1.Pod, can
 		if otherNode.Node().Name == candidateNode.Node().Name {
 			continue
 		}
-		totalLatency += sophos.GetNodeLatency(candidateNode.Node(), otherNode.Node())
+		latency := sophos.GetNodeLatency(candidateNode.Node(), otherNode.Node())
+		if latency == 0 {
+			continue
+		}
+		klog.Infof("%s master: %s → %s latency=%.4fms",
+			logPrefix, candidateNode.Node().Name, otherNode.Node().Name, latency*1000)
+		totalLatency += latency
 		count++
 	}
 
@@ -78,9 +82,12 @@ func (pl *NetworkAwareLocalAi) scoreMaster(ctx context.Context, pod *v1.Pod, can
 		if gatewayTraffic > 0 {
 			score -= int64(avgLatency * gatewayTraffic)
 		} else {
-			// First deploy without warmup(only to evict problem): use constant value
 			score -= int64(avgLatency * 1000)
 		}
+		klog.Infof("%s master score for %s: avgLatency=%.4fms peers=%.0f gwTraffic=%.2f score=%d",
+			logPrefix, candidateNode.Node().Name, avgLatency*1000, count, gatewayTraffic, score)
+	} else {
+		klog.Infof("%s master score for %s: no latency data available", logPrefix, candidateNode.Node().Name)
 	}
 
 	return score
@@ -89,35 +96,52 @@ func (pl *NetworkAwareLocalAi) scoreMaster(ctx context.Context, pod *v1.Pod, can
 func (pl *NetworkAwareLocalAi) scoreWorker(ctx context.Context, pod *v1.Pod, candidateNode *framework.NodeInfo) int64 {
 	var score int64
 
-	masterNodeName := pl.getGroupPodNodes(ctx, pod, "master")
-	if len(masterNodeName) == 0 {
+	masterNodeNames := pl.getGroupPodNodes(ctx, pod, "master")
+	if len(masterNodeNames) == 0 {
+		klog.Infof("%s worker %s: no master found for group, score=0", logPrefix, pod.Name)
 		return 0
 	}
 
-	masterNodeInfo, err := pl.handle.SnapshotSharedLister().NodeInfos().Get(masterNodeName[0])
+	masterNodeInfo, err := pl.handle.SnapshotSharedLister().NodeInfos().Get(masterNodeNames[0])
 	if err != nil {
 		return 0
 	}
 
 	latencyToMaster := sophos.GetNodeLatency(candidateNode.Node(), masterNodeInfo.Node())
+	if latencyToMaster == 0 {
+		klog.Infof("%s worker: no latency data from %s to master %s",
+			logPrefix, candidateNode.Node().Name, masterNodeNames[0])
+		return 0
+	}
 
-	// traffic between this worker's deployment and master
+	klog.Infof("%s worker: %s → master(%s) latency=%.4fms",
+		logPrefix, candidateNode.Node().Name, masterNodeNames[0], latencyToMaster*1000)
+
+	// traffic to master
+	group := pod.GetLabels()["group"]
 	masterPods, err := pl.handle.ClientSet().CoreV1().Pods(pod.GetNamespace()).List(ctx, metav1.ListOptions{
-		FieldSelector: "spec.nodeName=" + masterNodeName[0],
+		LabelSelector: labels.Set{
+			"group": group,
+			"role":  "master",
+		}.String(),
 	})
-	if err == nil {
-		for _, mp := range masterPods.Items {
-			traffic := sophos.GetGroupTraffic(ctx, pl.handle, pod, &mp)
-			if traffic > 0 {
-				score -= int64(latencyToMaster * traffic)
-			}
+	if err == nil && len(masterPods.Items) > 0 {
+		traffic := sophos.GetGroupTraffic(ctx, pl.handle, pod, &masterPods.Items[0])
+		if traffic > 0 {
+			score -= int64(latencyToMaster * traffic)
+			klog.Infof("%s worker: %s traffic to master=%.0f bytes/s",
+				logPrefix, candidateNode.Node().Name, traffic)
 		}
 	}
 
-	// gateway traffic × latency to master
-	// More incoming requests =  closer to master
+	// gateway traffic
 	gatewayTraffic := sophos.GetGatewayTraffic(ctx, pl.handle, pod, pl.gatewayTrafficKey)
-	score -= int64(latencyToMaster * gatewayTraffic)
+	if gatewayTraffic > 0 {
+		score -= int64(latencyToMaster * gatewayTraffic)
+	}
+
+	klog.Infof("%s worker score for %s: latency=%.4fms gwTraffic=%.2f score=%d",
+		logPrefix, candidateNode.Node().Name, latencyToMaster*1000, gatewayTraffic, score)
 
 	return score
 }
@@ -149,6 +173,7 @@ func (pl *NetworkAwareLocalAi) getGroupPodNodes(ctx context.Context, pod *v1.Pod
 	}
 	return nodes
 }
+
 
 func (pl *NetworkAwareLocalAi) ScoreExtensions() framework.ScoreExtensions {
 	return pl

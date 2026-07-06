@@ -18,6 +18,8 @@ const (
 	Name      = "NetworkAwareLocalAi"
 	logPrefix = "[sophos][NetworkAwareLocalAi]"
 	defaultGatewayTrafficKey = "gateway-traffic"
+	minTrafficWeight = 10.0
+	preScoreStateKey         = "PreScore" + Name
 )
 
 type NetworkAwareLocalAi struct {
@@ -25,123 +27,253 @@ type NetworkAwareLocalAi struct {
 	gatewayTrafficKey  string
 }
 
+type preScoreState struct {
+	role           string
+	gatewayTraffic float64
+
+	// Master scoring: avgLatency per candidate node
+	nodeAvgLatencyMs map[string]float64
+
+	// Worker scoring: master node name + latency per candidate + traffic to master
+	masterNodeName   string
+	nodeLatencyToMasterMs map[string]float64
+	trafficToMaster  float64
+}
+
+var _ = framework.PreScorePlugin(&NetworkAwareLocalAi{})
 var _ = framework.ScorePlugin(&NetworkAwareLocalAi{})
 
 func (pl *NetworkAwareLocalAi) Name() string {
 	return Name
 }
 
-func (pl *NetworkAwareLocalAi) Score(ctx context.Context, _ *framework.CycleState, pod *v1.Pod, nodeName string) (int64, *framework.Status) {
-	klog.Infof("%s scoring node %q for pod %q", logPrefix, nodeName, pod.Name)
+func (s *preScoreState) Clone() framework.StateData {
+	clone := &preScoreState{
+		role:           s.role,
+		gatewayTraffic: s.gatewayTraffic,
+		masterNodeName: s.masterNodeName,
+		trafficToMaster: s.trafficToMaster,
+	}
+	if s.nodeAvgLatencyMs != nil {
+		clone.nodeAvgLatencyMs = make(map[string]float64, len(s.nodeAvgLatencyMs))
+		for k, v := range s.nodeAvgLatencyMs {
+			clone.nodeAvgLatencyMs[k] = v
+		}
+	}
+	if s.nodeLatencyToMasterMs != nil {
+		clone.nodeLatencyToMasterMs = make(map[string]float64, len(s.nodeLatencyToMasterMs))
+		for k, v := range s.nodeLatencyToMasterMs {
+			clone.nodeLatencyToMasterMs[k] = v
+		}
+	}
+	return clone
+}
 
-	node, err := pl.handle.SnapshotSharedLister().NodeInfos().Get(nodeName)
-	if err != nil {
-		return 0, framework.NewStatus(framework.Error, fmt.Sprintf("error getting info for node %q: %v", nodeName, err))
+func (pl *NetworkAwareLocalAi) PreScore(ctx context.Context, cycleState *framework.CycleState, pod *v1.Pod, nodes []*framework.NodeInfo) *framework.Status {
+	role := pod.GetLabels()["role"]
+	if role == "" {
+		klog.Infof("%s pod %s has no role label, skipping PreScore", logPrefix, pod.Name)
+		cycleState.Write(preScoreStateKey, &preScoreState{})
+		return nil
 	}
 
-	var score int64
-	role := pod.GetLabels()["role"]
+	group := pod.GetLabels()["group"]
+	gatewayTraffic := sophos.GetGatewayTraffic(ctx, pl.handle, pod, pl.gatewayTrafficKey)
+
+	s := &preScoreState{
+		role:           role,
+		gatewayTraffic: gatewayTraffic,
+	}
 
 	switch role {
-	case "master":
-		score = pl.scoreMaster(ctx, pod, node)
-	case "worker":
-		score = pl.scoreWorker(ctx, pod, node)
+		case "master":
+			s.nodeAvgLatencyMs = pl.preScoreMaster(nodes)
+		case "worker":
+			s.nodeLatencyToMasterMs, s.masterNodeName, s.trafficToMaster = pl.preScoreWorker(ctx, pod, group, nodes)
 	}
 
-	return score, nil
+	klog.Infof("%s PreScore done for %s (role=%s, group=%s, gwTraffic=%.2f)",
+		logPrefix, pod.Name, role, group, gatewayTraffic)
+
+	cycleState.Write(preScoreStateKey, s)
+	return nil
 }
+func (pl *NetworkAwareLocalAi) preScoreMaster(nodes []*framework.NodeInfo) map[string]float64 {
+	result := make(map[string]float64, len(nodes))
 
-func (pl *NetworkAwareLocalAi) scoreMaster(ctx context.Context, pod *v1.Pod, candidateNode *framework.NodeInfo) int64 {
-	var score int64
+	// Collect all nodes for cross-latency
+	allNodes := nodes
 
-	allNodes, err := pl.handle.SnapshotSharedLister().NodeInfos().List()
-	if err != nil {
-		return 0
-	}
-
-	var totalLatency float64
-	var count float64
-	for _, otherNode := range allNodes {
-		if otherNode.Node().Name == candidateNode.Node().Name {
+	for _, candidateInfo := range allNodes {
+		candidate := candidateInfo.Node()
+		if candidate == nil {
 			continue
 		}
-		latency := sophos.GetNodeLatency(candidateNode.Node(), otherNode.Node())
-		if latency == 0 {
-			continue
+
+		var totalLatency float64
+		var count float64
+		for _, otherInfo := range allNodes {
+			other := otherInfo.Node()
+			if other == nil || other.Name == candidate.Name {
+				continue
+			}
+			latency := sophos.GetNodeLatency(candidate, other)
+			if latency == 0 {
+				continue
+			}
+			totalLatency += latency
+			count++
 		}
-		klog.Infof("%s master: %s → %s latency=%.4fms",
-			logPrefix, candidateNode.Node().Name, otherNode.Node().Name, latency*1000)
-		totalLatency += latency
-		count++
+
+		avgMs := 0.0
+		if count > 0 {
+			avgMs = (totalLatency / count) * 1000
+		}
+		result[candidate.Name] = avgMs
+
+		klog.Infof("%s PreScore master: %s avgLatency=%.4fms peers=%.0f",
+			logPrefix, candidate.Name, avgMs, count)
 	}
 
-	if count > 0 {
-		avgLatency := totalLatency / count
-		gatewayTraffic := sophos.GetGatewayTraffic(ctx, pl.handle, pod, pl.gatewayTrafficKey)
-		if gatewayTraffic > 0 {
-			score -= int64(avgLatency * gatewayTraffic)
-		} else {
-			score -= int64(avgLatency * 1000)
-		}
-		klog.Infof("%s master score for %s: avgLatency=%.4fms peers=%.0f gwTraffic=%.2f score=%d",
-			logPrefix, candidateNode.Node().Name, avgLatency*1000, count, gatewayTraffic, score)
-	} else {
-		klog.Infof("%s master score for %s: no latency data available", logPrefix, candidateNode.Node().Name)
-	}
-
-	return score
+	return result
 }
+func (pl *NetworkAwareLocalAi) preScoreWorker(ctx context.Context, pod *v1.Pod, group string, nodes []*framework.NodeInfo) (map[string]float64, string, float64) {
+	latencies := make(map[string]float64, len(nodes))
 
-func (pl *NetworkAwareLocalAi) scoreWorker(ctx context.Context, pod *v1.Pod, candidateNode *framework.NodeInfo) int64 {
-	var score int64
-
-	masterNodeNames := pl.getGroupPodNodes(ctx, pod, "master")
-	if len(masterNodeNames) == 0 {
-		klog.Infof("%s worker %s: no master found for group, score=0", logPrefix, pod.Name)
-		return 0
-	}
-
-	masterNodeInfo, err := pl.handle.SnapshotSharedLister().NodeInfos().Get(masterNodeNames[0])
-	if err != nil {
-		return 0
-	}
-
-	latencyToMaster := sophos.GetNodeLatency(candidateNode.Node(), masterNodeInfo.Node())
-	if latencyToMaster == 0 {
-		klog.Infof("%s worker: no latency data from %s to master %s",
-			logPrefix, candidateNode.Node().Name, masterNodeNames[0])
-		return 0
-	}
-
-	klog.Infof("%s worker: %s → master(%s) latency=%.4fms",
-		logPrefix, candidateNode.Node().Name, masterNodeNames[0], latencyToMaster*1000)
-
-	// traffic to master
-	group := pod.GetLabels()["group"]
+	// Find master node
 	masterPods, err := pl.handle.ClientSet().CoreV1().Pods(pod.GetNamespace()).List(ctx, metav1.ListOptions{
 		LabelSelector: labels.Set{
 			"group": group,
 			"role":  "master",
 		}.String(),
 	})
-	if err == nil && len(masterPods.Items) > 0 {
-		traffic := sophos.GetGroupTraffic(ctx, pl.handle, pod, &masterPods.Items[0])
-		if traffic > 0 {
-			score -= int64(latencyToMaster * traffic)
-			klog.Infof("%s worker: %s traffic to master=%.0f bytes/s",
-				logPrefix, candidateNode.Node().Name, traffic)
+	if err != nil || len(masterPods.Items) == 0 {
+		klog.Infof("%s PreScore worker: no master found for group %s", logPrefix, group)
+		return latencies, "", 0
+	}
+
+	masterPod := &masterPods.Items[0]
+	masterNodeName := masterPod.Spec.NodeName
+	if masterNodeName == "" {
+		klog.Infof("%s PreScore worker: master pod %s not yet scheduled", logPrefix, masterPod.Name)
+		return latencies, "", 0
+	}
+
+	// Find master node info for latency calculation
+	var masterNode *v1.Node
+	for _, ni := range nodes {
+		if ni.Node() != nil && ni.Node().Name == masterNodeName {
+			masterNode = ni.Node()
+			break
 		}
 	}
-
-	// gateway traffic
-	gatewayTraffic := sophos.GetGatewayTraffic(ctx, pl.handle, pod, pl.gatewayTrafficKey)
-	if gatewayTraffic > 0 {
-		score -= int64(latencyToMaster * gatewayTraffic)
+	// Master might not be in candidate list, fetch separately
+	if masterNode == nil {
+		masterNodeInfo, err := pl.handle.SnapshotSharedLister().NodeInfos().Get(masterNodeName)
+		if err == nil {
+			masterNode = masterNodeInfo.Node()
+		}
+	}
+	if masterNode == nil {
+		klog.Infof("%s PreScore worker: master node %s not found", logPrefix, masterNodeName)
+		return latencies, masterNodeName, 0
 	}
 
-	klog.Infof("%s worker score for %s: latency=%.4fms gwTraffic=%.2f score=%d",
-		logPrefix, candidateNode.Node().Name, latencyToMaster*1000, gatewayTraffic, score)
+	// Compute latency from each candidate to master
+	for _, candidateInfo := range nodes {
+		candidate := candidateInfo.Node()
+		if candidate == nil {
+			continue
+		}
+		latency := sophos.GetNodeLatency(candidate, masterNode)
+		latencyMs := latency * 1000
+		latencies[candidate.Name] = latencyMs
+
+		klog.Infof("%s PreScore worker: %s → master(%s) latency=%.4fms",
+			logPrefix, candidate.Name, masterNodeName, latencyMs)
+	}
+
+	// Get traffic from worker deployment to master
+	traffic := sophos.GetGroupTraffic(ctx, pl.handle, pod, masterPod)
+
+	klog.Infof("%s PreScore worker: masterNode=%s traffic=%.0f",
+		logPrefix, masterNodeName, traffic)
+
+	return latencies, masterNodeName, traffic
+}
+
+func (pl *NetworkAwareLocalAi) Score(_ context.Context, cycleState *framework.CycleState, pod *v1.Pod, nodeName string) (int64, *framework.Status) {
+	rawState, err := cycleState.Read(preScoreStateKey)
+	if err != nil {
+		return 0, framework.NewStatus(framework.Error, fmt.Sprintf("error reading PreScore state: %v", err))
+	}
+	s, ok := rawState.(*preScoreState)
+	if !ok {
+		return 0, framework.NewStatus(framework.Error, "invalid PreScore state type")
+	}
+	
+	// klog.Infof("%s scoring node %q for pod %q", logPrefix, nodeName, pod.Name)
+
+	// node, err := pl.handle.SnapshotSharedLister().NodeInfos().Get(nodeName)
+	// if err != nil {
+	// 	return 0, framework.NewStatus(framework.Error, fmt.Sprintf("error getting info for node %q: %v", nodeName, err))
+	// }
+
+	var score int64
+	// role := pod.GetLabels()["role"]
+
+	switch s.role {
+		case "master":
+			score = pl.scoreMaster(s, nodeName)
+		case "worker":
+			score = pl.scoreWorker(s, nodeName)
+	}
+
+	return score, nil
+}
+
+func (pl *NetworkAwareLocalAi) scoreMaster(s *preScoreState, nodeName string) int64 {
+	avgLatencyMs, ok := s.nodeAvgLatencyMs[nodeName]
+	if !ok || avgLatencyMs == 0 {
+		return 0
+	}
+
+	weight := s.gatewayTraffic
+	if weight < minTrafficWeight {
+		weight = minTrafficWeight
+	}
+
+	score := -int64(avgLatencyMs * weight)
+
+	klog.Infof("%s Score master %s: avgLatency=%.4fms weight=%.0f score=%d",
+		logPrefix, nodeName, avgLatencyMs, weight, score)
+
+	return score
+}
+
+func (pl *NetworkAwareLocalAi) scoreWorker(s *preScoreState, nodeName string) int64 {
+	// latency from node worker to master network-latency.<peerNode>
+	latencyMs, ok := s.nodeLatencyToMasterMs[nodeName]
+	if !ok || latencyMs == 0 {
+		return 0
+	}
+
+	var score int64
+
+	// traffic to master , calcolated with node_network_transmit_bytes_total, traffic of the worker from an interface
+	if s.trafficToMaster > 0 {
+		score -= int64(latencyMs * s.trafficToMaster)
+	}
+
+	// gateway traffic 
+	weight := s.gatewayTraffic
+	if weight < minTrafficWeight {
+		weight = minTrafficWeight
+	}
+	score -= int64(latencyMs * weight)
+
+	klog.Infof("%s Score worker %s: latency=%.4fms traffic=%.0f gwWeight=%.0f score=%d",
+		logPrefix, nodeName, latencyMs, s.trafficToMaster, weight, score)
 
 	return score
 }

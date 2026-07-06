@@ -20,6 +20,7 @@ const (
 	LabelKey                  = "nvidia.com/device-plugin.config"
 	backendsPathAnnotationKey = "localai-backends-path"
 	workerArgsAnnotationKey   = "localai-worker-args"
+	logPrefix = "[sophos][ArchitectureAware]"
 )
 
 type ArchMapping struct {
@@ -54,8 +55,7 @@ func replaceImageTag(image, newTag string) string {
 }
 
 func (pl *ArchitectureAware) PreBind(ctx context.Context, _ *framework.CycleState, pod *v1.Pod, nodeName string) *framework.Status {
-	klog.Infof("[ArchitectureAware] PreBind: Pod %s/%s to node %s", pod.Namespace, pod.Name, nodeName)
-
+	klog.Infof("%s PreBind: Pod %s/%s to node %s",logPrefix, pod.Namespace, pod.Name, nodeName)
 	client := pl.handle.ClientSet()
 
 	node, err := client.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
@@ -66,11 +66,11 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context, _ *framework.CycleStat
 	}
 
 	deviceType := node.Labels[LabelKey]
-	klog.Infof("[ArchitectureAware] Node %s has label %s=%s", nodeName, LabelKey, deviceType)
+	klog.Infof("%s Node %s has label %s=%s",logPrefix, nodeName, LabelKey, deviceType)
 
 	mapping, ok := pl.mappings[deviceType]
 	if !ok || mapping.Tag == "" {
-		klog.Warningf("[ArchitectureAware] No mapping for device type %q", deviceType)
+		klog.Warningf("%s No mapping for device type %q",logPrefix, deviceType)
 		return framework.NewStatus(framework.Success, "")
 	}
 
@@ -89,7 +89,7 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context, _ *framework.CycleStat
 				"path":  fmt.Sprintf("/spec/containers/%d/image", i),
 				"value": newImage,
 			})
-			klog.Infof("[ArchitectureAware] container[%d]=%s image: %s → %s", i, c.Name, c.Image, newImage)
+			klog.Infof("%s container[%d]=%s image: %s → %s",logPrefix, i, c.Name, c.Image, newImage)
 		}
 	}
 
@@ -100,8 +100,8 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context, _ *framework.CycleStat
 			"path":  "/metadata/annotations/" + backendsPathAnnotationKey,
 			"value": mapping.BackendsPath,
 		})
-		klog.Infof("[ArchitectureAware] annotation %s: %q → %q",
-			backendsPathAnnotationKey, pod.Annotations[backendsPathAnnotationKey], mapping.BackendsPath)
+		klog.Infof("%s annotation %s: %q → %q",
+			logPrefix, backendsPathAnnotationKey, pod.Annotations[backendsPathAnnotationKey], mapping.BackendsPath)
 	}
 
 	// Patch worker-args annotation — solo per pod con role=worker
@@ -114,13 +114,13 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context, _ *framework.CycleStat
 				"path":  "/metadata/annotations/" + workerArgsAnnotationKey,
 				"value": argsStr,
 			})
-			klog.Infof("[ArchitectureAware] annotation %s: %q → %q",
+			klog.Infof("%s annotation %s: %q → %q", logPrefix,
 				workerArgsAnnotationKey, pod.Annotations[workerArgsAnnotationKey], argsStr)
 		}
 	}
 
 	if len(patchOps) == 0 {
-		klog.Infof("[ArchitectureAware] No changes needed for Pod %s/%s", pod.Namespace, pod.Name)
+		klog.Infof("%s No changes needed for Pod %s/%s",logPrefix, pod.Namespace, pod.Name)
 		return framework.NewStatus(framework.Success, "")
 	}
 
@@ -134,7 +134,7 @@ func (pl *ArchitectureAware) PreBind(ctx context.Context, _ *framework.CycleStat
 		return framework.NewStatus(framework.Error, msg)
 	}
 
-	klog.Infof("[ArchitectureAware] Applied %d patch op(s) to Pod %s/%s", len(patchOps), pod.Namespace, pod.Name)
+	klog.Infof("%s Applied %d patch op(s) to Pod %s/%s",logPrefix, len(patchOps), pod.Namespace, pod.Name)
 	return framework.NewStatus(framework.Success, "")
 }
 
@@ -161,6 +161,6 @@ func New(_ context.Context, obj runtime.Object, handle framework.Handle) (framew
 		mappings: mappings,
 	}
 
-	klog.Infof("[ArchitectureAware] Loaded mappings: %+v", mappings)
+	klog.Infof("%s Loaded mappings: %+v",logPrefix, mappings)
 	return pl, nil
 }

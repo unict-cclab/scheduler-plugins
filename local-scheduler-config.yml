@@ -1,0 +1,23 @@
+apiVersion: kubescheduler.config.k8s.io/v1
+kind: KubeSchedulerConfiguration
+
+leaderElection:
+  leaderElect: false
+
+clientConnection:
+  kubeconfig: /home/angelo/.kube/config
+
+profiles:
+- schedulerName: scheduler-plugins-scheduler
+  plugins:
+    queueSort:
+      enabled:
+      - name: NetworkAware
+      disabled:
+      - name: "*"
+    multiPoint:
+      enabled:
+      - name: NetworkAware
+        weight: 1
+      #- name: LoadAwareResourcesBalancedAllocation
+      #  weight: 1

@@ -4,7 +4,7 @@
 
 scheduler:
   name: scheduler-plugins-scheduler
-  image: ghcr.io/unict-cclab/kube-scheduler:sophos-v0.2.5
+  image: ghcr.io/unict-cclab/kube-scheduler:sophos-v0.2.6
   replicaCount: 1
   leaderElect: false
   affinity:
@@ -43,10 +43,19 @@ controller:
 #  disabled: ["PrioritySort"] # only in-tree plugins need to be defined here
 plugins:
   enabled:
-    - ArchitectureAware
-    - LoadAwareResourcesBalancedAllocation
-
-  disabled: []
+    - loadAwareResourcesBalancedAllocation
+    - networkAwareLocalAi
+    - architectureAware
+  preBind:
+    enabled:
+      - name: ArchitectureAware
+  score:
+    enabled:
+      - name: NetworkAwareLocalAi
+      - name: LoadAwareResourcesBalancedAllocation
+  preScore:
+    enabled:
+      - name: NetworkAwareLocalAi
   # score:
   #   enabled:
   #     - name: QoSAware

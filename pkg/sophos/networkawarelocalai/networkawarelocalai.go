@@ -31,15 +31,18 @@ type preScoreState struct {
 	role           string
 	gatewayTraffic float64
 	maxBandwidth float64
+	maxPacketLoss float64
 
 	// Master scoring: avgLatency per candidate node
 	nodeAvgLatencyMs map[string]float64
 	nodeAvgBandwidth map[string]float64
+	nodeAvgPacketLoss map[string]float64
 
 	// Worker scoring: master node name + latency per candidate + traffic to master
 	masterNodeName   string
 	nodeLatencyToMasterMs map[string]float64
 	nodeBandwidthToMaster map[string]float64
+	nodePacketLossToMaster map[string]float64
 	trafficToMaster  float64
 }
 
@@ -56,10 +59,14 @@ func (s *preScoreState) Clone() framework.StateData {
 		gatewayTraffic:  s.gatewayTraffic,
 		masterNodeName:  s.masterNodeName,
 		trafficToMaster: s.trafficToMaster,
-		nodeAvgLatencyMs:      make(map[string]float64, len(s.nodeAvgLatencyMs)),
-		nodeAvgBandwidth:      make(map[string]float64, len(s.nodeAvgBandwidth)),
-		nodeLatencyToMasterMs: make(map[string]float64, len(s.nodeLatencyToMasterMs)),
-		nodeBandwidthToMaster: make(map[string]float64, len(s.nodeBandwidthToMaster)),
+		maxBandwidth:    s.maxBandwidth,
+		maxPacketLoss:   s.maxPacketLoss,
+		nodeAvgLatencyMs:       make(map[string]float64, len(s.nodeAvgLatencyMs)),
+		nodeAvgBandwidth:       make(map[string]float64, len(s.nodeAvgBandwidth)),
+		nodeAvgPacketLoss:      make(map[string]float64, len(s.nodeAvgPacketLoss)),
+		nodeLatencyToMasterMs:  make(map[string]float64, len(s.nodeLatencyToMasterMs)),
+		nodeBandwidthToMaster:  make(map[string]float64, len(s.nodeBandwidthToMaster)),
+		nodePacketLossToMaster: make(map[string]float64, len(s.nodePacketLossToMaster)),
 	}
 	for k, v := range s.nodeAvgLatencyMs {
 		clone.nodeAvgLatencyMs[k] = v
@@ -67,11 +74,17 @@ func (s *preScoreState) Clone() framework.StateData {
 	for k, v := range s.nodeAvgBandwidth {
 		clone.nodeAvgBandwidth[k] = v
 	}
+	for k, v := range s.nodeAvgPacketLoss {
+		clone.nodeAvgPacketLoss[k] = v
+	}
 	for k, v := range s.nodeLatencyToMasterMs {
 		clone.nodeLatencyToMasterMs[k] = v
 	}
 	for k, v := range s.nodeBandwidthToMaster {
 		clone.nodeBandwidthToMaster[k] = v
+	}
+	for k, v := range s.nodePacketLossToMaster {
+		clone.nodePacketLossToMaster[k] = v
 	}
 	return clone
 }
@@ -94,9 +107,9 @@ func (pl *NetworkAwareLocalAi) PreScore(ctx context.Context, cycleState *framewo
 
 	switch role {
 		case "master":
-			s.nodeAvgLatencyMs, s.nodeAvgBandwidth, s.maxBandwidth = pl.preScoreMaster(nodes)
+			s.nodeAvgLatencyMs, s.nodeAvgBandwidth, s.nodeAvgPacketLoss, s.maxBandwidth, s.maxPacketLoss = pl.preScoreMaster(nodes)
 		case "worker":
-			s.nodeLatencyToMasterMs, s.nodeBandwidthToMaster, s.masterNodeName, s.trafficToMaster, s.maxBandwidth = pl.preScoreWorker(ctx, pod, group, nodes)
+			s.nodeLatencyToMasterMs, s.nodeBandwidthToMaster, s.nodePacketLossToMaster, s.masterNodeName, s.trafficToMaster, s.maxBandwidth, s.maxPacketLoss = pl.preScoreWorker(ctx, pod, group, nodes)
 	}
 
 	klog.Infof("%s PreScore done for %s (role=%s, group=%s, gwTraffic=%.2f)",
@@ -105,9 +118,10 @@ func (pl *NetworkAwareLocalAi) PreScore(ctx context.Context, cycleState *framewo
 	cycleState.Write(preScoreStateKey, s)
 	return nil
 }
-func (pl *NetworkAwareLocalAi) preScoreMaster(nodes []*framework.NodeInfo) (map[string]float64, map[string]float64, float64) {	
+func (pl *NetworkAwareLocalAi) preScoreMaster(nodes []*framework.NodeInfo) (map[string]float64, map[string]float64, map[string]float64, float64, float64) {
 	latencies := make(map[string]float64, len(nodes))
 	bandwidths := make(map[string]float64, len(nodes))
+	packetLosses := make(map[string]float64, len(nodes))
 
 	for _, candidateInfo := range nodes {
 		candidate := candidateInfo.Node()
@@ -115,8 +129,8 @@ func (pl *NetworkAwareLocalAi) preScoreMaster(nodes []*framework.NodeInfo) (map[
 			continue
 		}
 
-		var totalLatency, totalBandwidth float64
-		var latCount, bwCount float64
+		var totalLatency, totalBandwidth, totalPacketloss float64
+		var latCount, bwCount, plCount float64
 		for _, otherInfo := range nodes {
 			other := otherInfo.Node()
 			if other == nil || other.Name == candidate.Name {
@@ -134,34 +148,51 @@ func (pl *NetworkAwareLocalAi) preScoreMaster(nodes []*framework.NodeInfo) (map[
 				totalBandwidth += bw
 				bwCount++
 			}
+			pl := sophos.GetNodePacketLoss(candidate, other)
+			if pl > 0 {
+				totalPacketloss += pl
+				plCount++
+			}
 		}
 
 		avgLatMs := 0.0
+		avgBw := 0.0
+		avgPl := 0.0
 		if latCount > 0 {
 			avgLatMs = (totalLatency / latCount) * 1000
 		}
-		avgBw := 0.0
 		if bwCount > 0 {
 			avgBw = totalBandwidth / bwCount
 		}
+		if plCount > 0 {
+			avgPl = totalPacketloss/ plCount
+		}
+
 		latencies[candidate.Name] = avgLatMs
 		bandwidths[candidate.Name] = avgBw
+		packetLosses[candidate.Name] = avgPl
 
-		klog.Infof("%s PreScore master: %s avgLatency=%.4fms avgBandwidth=%.0f B/s",
-			logPrefix, candidate.Name, avgLatMs, avgBw)
+		klog.Infof("%s PreScore master: %s avgLatency=%.4fms avgBw=%.0f B/s avgPktLoss=%.4f",
+			logPrefix, candidate.Name, avgLatMs, avgBw, avgPl)
 	}
 	maxBw := 0.0
+	maxPl := 0.0
 	for _, bw := range bandwidths {
 		if bw > maxBw {
 			maxBw = bw
 		}
 	}
-	return latencies, bandwidths, maxBw
+	for _, pl := range packetLosses {
+		if pl > maxPl {
+			maxPl = pl
+		}
+	}
+	return latencies, bandwidths, packetLosses, maxBw, maxPl
 }
-func (pl *NetworkAwareLocalAi) preScoreWorker(ctx context.Context, pod *v1.Pod, group string, nodes []*framework.NodeInfo) (map[string]float64, map[string]float64, string, float64, float64) {
+func (pl *NetworkAwareLocalAi) preScoreWorker(ctx context.Context, pod *v1.Pod, group string, nodes []*framework.NodeInfo) (map[string]float64, map[string]float64, map[string]float64, string, float64, float64, float64) {
 	latencies := make(map[string]float64, len(nodes))
 	bandwidths := make(map[string]float64, len(nodes))
-	
+	packetLosses := make(map[string]float64, len(nodes))
 	// Find master node
 	masterPods, err := pl.handle.ClientSet().CoreV1().Pods(pod.GetNamespace()).List(ctx, metav1.ListOptions{
 		LabelSelector: labels.Set{
@@ -171,14 +202,14 @@ func (pl *NetworkAwareLocalAi) preScoreWorker(ctx context.Context, pod *v1.Pod, 
 	})
 	if err != nil || len(masterPods.Items) == 0 {
 		klog.Infof("%s PreScore worker: no master found for group %s", logPrefix, group)
-		return latencies, bandwidths, "", 0, 0
+		return latencies, bandwidths, packetLosses, "", 0, 0, 0
 	}
 
 	masterPod := &masterPods.Items[0]
 	masterNodeName := masterPod.Spec.NodeName
 	if masterNodeName == "" {
 		klog.Infof("%s PreScore worker: master pod %s not yet scheduled", logPrefix, masterPod.Name)
-		return latencies, bandwidths, "", 0, 0
+		return latencies, bandwidths, packetLosses, "", 0, 0, 0
 	}
 
 	// Find master node info for latency calculation
@@ -198,7 +229,7 @@ func (pl *NetworkAwareLocalAi) preScoreWorker(ctx context.Context, pod *v1.Pod, 
 	}
 	if masterNode == nil {
 		klog.Infof("%s PreScore worker: master node %s not found", logPrefix, masterNodeName)
-		return latencies, bandwidths, masterNodeName, 0, 0
+		return latencies, bandwidths, packetLosses, masterNodeName, 0, 0, 0
 	}
 
 	// Compute latency from each candidate to master
@@ -214,8 +245,11 @@ func (pl *NetworkAwareLocalAi) preScoreWorker(ctx context.Context, pod *v1.Pod, 
 		bandwidth := sophos.GetNodeBandwidth(candidate, masterNode)
 		bandwidths[candidate.Name] = bandwidth
 
-		klog.Infof("%s PreScore worker: %s → master(%s) latency=%.4fms bandwidth=%.4fms",
-			logPrefix, candidate.Name, masterNodeName, latencyMs,bandwidth)
+		pktLoss := sophos.GetNodePacketLoss(candidate, masterNode)
+		packetLosses[candidate.Name] = pktLoss
+
+		klog.Infof("%s PreScore worker: %s → master(%s) latency=%.4fms bandwidth=%.0f B/s pktLoss=%.4f",
+			logPrefix, candidate.Name, masterNodeName, latencyMs,bandwidth, pktLoss)
 	}
 
 	// Get traffic from worker deployment to master
@@ -224,12 +258,19 @@ func (pl *NetworkAwareLocalAi) preScoreWorker(ctx context.Context, pod *v1.Pod, 
 	klog.Infof("%s PreScore worker: masterNode=%s traffic=%.0f",
 		logPrefix, masterNodeName, traffic)
 	maxBw := 0.0
+	maxPl := 0.0
 	for _, bw := range bandwidths {
 		if bw > maxBw {
 			maxBw = bw
 		}
 	}
-	return latencies, bandwidths, masterNodeName, traffic, maxBw
+	for _, pl := range packetLosses {
+		if pl > maxPl {
+			maxPl = pl
+		}
+	}
+	return latencies, bandwidths, packetLosses, masterNodeName, traffic, maxBw, maxPl
+
 }
 
 func (pl *NetworkAwareLocalAi) Score(_ context.Context, cycleState *framework.CycleState, pod *v1.Pod, nodeName string) (int64, *framework.Status) {
@@ -265,7 +306,9 @@ func (pl *NetworkAwareLocalAi) Score(_ context.Context, cycleState *framework.Cy
 func (pl *NetworkAwareLocalAi) scoreMaster(s *preScoreState, nodeName string) int64 {
 	avgLatencyMs, ok := s.nodeAvgLatencyMs[nodeName]
 	avgBandwidth := s.nodeAvgBandwidth[nodeName]
-	if !ok || avgLatencyMs == 0 && avgBandwidth == 0  {
+	avgPacketLoss := s.nodeAvgPacketLoss[nodeName]
+
+	if !ok || avgLatencyMs == 0 && avgBandwidth == 0  && avgPacketLoss == 0 {
 		return 0
 	}
 
@@ -279,8 +322,12 @@ func (pl *NetworkAwareLocalAi) scoreMaster(s *preScoreState, nodeName string) in
 		bwRatio := 1 - avgBandwidth/s.maxBandwidth
 		score -= int64(bwRatio * weight)
 	}
-	klog.Infof("%s Score master %s: latency=%.4fms bw=%.0f B/s weight=%.0f score=%d",
-		logPrefix, nodeName, avgLatencyMs, avgBandwidth, weight, score)
+	if avgPacketLoss > 0 && s.maxPacketLoss > 0 {
+		plRatio := avgPacketLoss / s.maxPacketLoss
+		score -= int64(plRatio * weight)
+	}
+	klog.Infof("%s Score master %s: latency=%.4fms bw=%.0f pktLoss=%.4f weight=%.0f score=%d",
+		logPrefix, nodeName, avgLatencyMs, avgBandwidth, avgPacketLoss, weight, score)
 
 	return score
 }
@@ -289,7 +336,9 @@ func (pl *NetworkAwareLocalAi) scoreWorker(s *preScoreState, nodeName string) in
 	// latency from node worker to master network-latency.<peerNode>
 	latencyMs, ok := s.nodeLatencyToMasterMs[nodeName]
 	bandwidth := s.nodeBandwidthToMaster[nodeName]
-	if !ok || latencyMs == 0 && bandwidth == 0 {
+	packetLoss := s.nodePacketLossToMaster[nodeName]
+
+	if !ok || latencyMs == 0 && bandwidth == 0 && packetLoss == 0{
 		return 0
 	}
 
@@ -310,8 +359,14 @@ func (pl *NetworkAwareLocalAi) scoreWorker(s *preScoreState, nodeName string) in
     	bwRatio := 1 - bandwidth/s.maxBandwidth  // 0 = best, 1 = worst
     	score -= int64(bwRatio * weight)
 	}
-	klog.Infof("%s Score worker %s: latency=%.4fms bw=%.0f B/s traffic=%.0f weight=%.0f score=%d",
-		logPrefix, nodeName, latencyMs, bandwidth, s.trafficToMaster, weight, score)
+	if packetLoss > 0 && s.maxPacketLoss > 0 {
+		plRatio := packetLoss / s.maxPacketLoss
+		score -= int64(plRatio * weight)
+	}
+
+	klog.Infof("%s Score worker %s: latency=%.4fms bw=%.0f pktLoss=%.4f traffic=%.0f weight=%.0f score=%d",
+		logPrefix, nodeName, latencyMs, bandwidth, packetLoss, s.trafficToMaster, weight, score)
+
 
 	return score
 }

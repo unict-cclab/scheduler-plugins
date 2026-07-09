@@ -6,6 +6,7 @@
 bin
 testbin/*
 hack/tools/bin/*
+local-scheduler-config.yml
 
 # macOS
 .DS_Store

@@ -11,6 +11,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/queuesort"
+	"sigs.k8s.io/scheduler-plugins/apis/config"
 	"sigs.k8s.io/scheduler-plugins/pkg/sophos"
 )
 
@@ -19,11 +20,11 @@ const (
 	logPrefix = "[sophos][NetworkAware]"
 
 	preScoreStateKey = "PreScore" + Name
-	scoreScale       = 1000000
 )
 
 type NetworkAware struct {
-	handle framework.Handle
+	handle                    framework.Handle
+	ignoreSameZoneNetworkCost bool
 }
 
 type preScoreState struct {
@@ -37,6 +38,7 @@ type nodeNetworkMetrics struct {
 	latency    float64
 	bandwidth  float64
 	packetLoss float64
+	zeroCost   bool
 }
 
 type peerPlacement struct {
@@ -44,8 +46,8 @@ type peerPlacement struct {
 	traffic float64
 }
 
-var _ = framework.PreScorePlugin(&NetworkAware{})
 var _ = framework.QueueSortPlugin(&NetworkAware{})
+var _ = framework.PreScorePlugin(&NetworkAware{})
 var _ = framework.ScorePlugin(&NetworkAware{})
 
 func (pl *NetworkAware) Name() string {
@@ -138,6 +140,9 @@ func (pl *NetworkAware) PreScore(ctx context.Context, state *framework.CycleStat
 				bandwidth:  sophos.GetNodeBandwidth(candidate, peer.node),
 				packetLoss: sophos.GetNodePacketLoss(candidate, peer.node),
 			}
+			if pl.ignoreSameZoneNetworkCost && sameZone(candidate, peer.node) {
+				metrics.zeroCost = true
+			}
 			if metrics.latency > maxMetrics.latency {
 				maxMetrics.latency = metrics.latency
 			}
@@ -187,7 +192,7 @@ func (pl *NetworkAware) Score(_ context.Context, state *framework.CycleState, po
 		cost += communicationCost(metrics[i], preScore.maxMetrics, peer.traffic, preScore.maxTraffic)
 	}
 
-	return -int64(math.Round(cost * scoreScale)), nil
+	return -int64(math.Round(cost)), nil
 }
 
 func (pl *NetworkAware) ScoreExtensions() framework.ScoreExtensions {
@@ -223,14 +228,33 @@ func (pl *NetworkAware) NormalizeScore(_ context.Context, _ *framework.CycleStat
 	return nil
 }
 
-func New(_ context.Context, _ runtime.Object, handle framework.Handle) (framework.Plugin, error) {
+func New(_ context.Context, obj runtime.Object, handle framework.Handle) (framework.Plugin, error) {
+	args, ok := obj.(*config.NetworkAwareArgs)
+	if !ok && obj != nil {
+		return nil, fmt.Errorf("want args to be of type NetworkAwareArgs, got %T", obj)
+	}
+
 	pl := &NetworkAware{
 		handle: handle,
+	}
+	if args != nil {
+		pl.ignoreSameZoneNetworkCost = args.IgnoreSameZoneNetworkCost
 	}
 	return pl, nil
 }
 
+func sameZone(a, b *v1.Node) bool {
+	if a == nil || b == nil {
+		return false
+	}
+	zone := a.Labels[v1.LabelTopologyZone]
+	return zone != "" && zone == b.Labels[v1.LabelTopologyZone]
+}
+
 func communicationCost(metrics, maxMetrics nodeNetworkMetrics, traffic, maxTraffic float64) float64 {
+	if metrics.zeroCost {
+		return 0
+	}
 	if traffic <= 0 || maxTraffic <= 0 {
 		return 0
 	}
@@ -248,16 +272,16 @@ func communicationCost(metrics, maxMetrics nodeNetworkMetrics, traffic, maxTraff
 		latencyRatio = 1
 	}
 
-	bandwidthRatio := 0.0
+	bandwidthRatio := 1.0
 	if maxMetrics.bandwidth > 0 {
 		if metrics.bandwidth <= 0 {
-			bandwidthRatio = 1
+			bandwidthRatio = 0
 		} else {
-			bandwidthRatio = 1 - metrics.bandwidth/maxMetrics.bandwidth
-			if bandwidthRatio < 0 {
-				bandwidthRatio = 0
-			}
+			bandwidthRatio = metrics.bandwidth / maxMetrics.bandwidth
 		}
+	}
+	if bandwidthRatio > 1 {
+		bandwidthRatio = 1
 	}
 
 	packetLossRatio := 0.0
@@ -268,5 +292,5 @@ func communicationCost(metrics, maxMetrics nodeNetworkMetrics, traffic, maxTraff
 		packetLossRatio = 1
 	}
 
-	return trafficRatio * (latencyRatio + bandwidthRatio + packetLossRatio)
+	return trafficRatio * (latencyRatio + 1 - bandwidthRatio + packetLossRatio)
 }

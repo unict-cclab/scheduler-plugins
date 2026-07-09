@@ -25,36 +25,45 @@ import (
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type QoSAwareArgs struct {
-    metav1.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	// Lista di mapping tra valore della label e factor del dispostivo
 	Mappings []DeviceFactoreMapping `json:"mappings,omitempty"`
-
 }
 
 // Singolo mapping label → factor
 type DeviceFactoreMapping struct {
-	LabelValue string `json:"labelValue,omitempty"`
-	Factor       float64 `json:"factor,omitempty"`
+	LabelValue string  `json:"labelValue,omitempty"`
+	Factor     float64 `json:"factor,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type ArchitectureAwareArgs struct {
-    metav1.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	// Lista di mapping tra valore della label e tag dell'immagine
 	Mappings []DeviceMapping `json:"mappings,omitempty"`
-    // OrinTag string `json:"orinTag,omitempty"`
-    // NanoTag string `json:"nanoTag,omitempty"`
+	// OrinTag string `json:"orinTag,omitempty"`
+	// NanoTag string `json:"nanoTag,omitempty"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type NetworkAwareArgs struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// IgnoreSameZoneNetworkCost treats communication between nodes in the same
+	// topology.kubernetes.io/zone as zero network cost.
+	IgnoreSameZoneNetworkCost bool `json:"ignoreSameZoneNetworkCost,omitempty"`
 }
 
 // Singolo mapping label → tag
 type DeviceMapping struct {
-	LabelValue string `json:"labelValue,omitempty"`
-	Tag        string `json:"tag,omitempty"`
-	BackendsPath string `json:"backendsPath,omitempty"` 
-	Args         []string `json:"args,omitempty"` 
+	LabelValue   string   `json:"labelValue,omitempty"`
+	Tag          string   `json:"tag,omitempty"`
+	BackendsPath string   `json:"backendsPath,omitempty"`
+	Args         []string `json:"args,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

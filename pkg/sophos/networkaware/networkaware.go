@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"strconv"
 
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
@@ -46,6 +49,8 @@ type peerPlacement struct {
 	traffic float64
 }
 
+var _ = framework.PreEnqueuePlugin(&NetworkAware{})
+var _ = framework.EnqueueExtensions(&NetworkAware{})
 var _ = framework.QueueSortPlugin(&NetworkAware{})
 var _ = framework.PreScorePlugin(&NetworkAware{})
 var _ = framework.ScorePlugin(&NetworkAware{})
@@ -65,6 +70,104 @@ func (pl *NetworkAware) Less(pInfo1, pInfo2 *framework.QueuedPodInfo) bool {
 	}
 
 	return (&queuesort.PrioritySort{}).Less(pInfo1, pInfo2)
+}
+
+func (pl *NetworkAware) PreEnqueue(ctx context.Context, pod *v1.Pod) *framework.Status {
+	index, ok := sophos.GetPodIndex(pod)
+	if !ok || index <= 0 {
+		return nil
+	}
+
+	group, ok := pod.Labels["group"]
+	if !ok || group == "" {
+		return nil
+	}
+
+	selector := labels.Set{
+		"group": group,
+		"index": strconv.Itoa(index - 1),
+	}.String()
+
+	deployments, err := pl.handle.ClientSet().AppsV1().Deployments(pod.Namespace).List(ctx, metav1.ListOptions{LabelSelector: selector})
+	if err != nil {
+		return framework.NewStatus(framework.Error, fmt.Sprintf("error listing predecessor deployments in namespace %q: %v", pod.Namespace, err))
+	}
+
+	pods, err := pl.handle.ClientSet().CoreV1().Pods(pod.Namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labels.Set{"group": group}.String(),
+	})
+
+	if err != nil {
+		return framework.NewStatus(framework.Error, fmt.Sprintf("error listing predecessor pods in namespace %q: %v", pod.Namespace, err))
+	}
+
+	ready, reason, err := previousDeploymentsReady(deployments.Items, pods.Items)
+	if err != nil {
+		return framework.NewStatus(framework.Error, err.Error())
+	}
+	if !ready {
+		return framework.NewStatus(framework.UnschedulableAndUnresolvable, reason)
+	}
+	return nil
+}
+
+func (pl *NetworkAware) EventsToRegister() []framework.ClusterEventWithHint {
+	return []framework.ClusterEventWithHint{
+		{
+			Event:          framework.ClusterEvent{Resource: framework.Pod, ActionType: framework.Add | framework.Update},
+			QueueingHintFn: pl.isSchedulableAfterPodChange,
+		},
+	}
+}
+
+func (pl *NetworkAware) isSchedulableAfterPodChange(_ klog.Logger, _ *v1.Pod, _, _ interface{}) (framework.QueueingHint, error) {
+	return framework.Queue, nil
+}
+
+func previousDeploymentsReady(deployments []appsv1.Deployment, pods []v1.Pod) (bool, string, error) {
+	if len(deployments) == 0 {
+		return false, "waiting for predecessor deployments", nil
+	}
+	for i := range deployments {
+		deployment := &deployments[i]
+		if deployment.Spec.Replicas != nil && *deployment.Spec.Replicas == 0 {
+			continue
+		}
+
+		selector, err := metav1.LabelSelectorAsSelector(deployment.Spec.Selector)
+		if err != nil {
+			return false, "", fmt.Errorf("invalid selector for predecessor deployment %s/%s: %w", deployment.Namespace, deployment.Name, err)
+		}
+
+		ready := false
+		for j := range pods {
+			peer := &pods[j]
+			if peer.DeletionTimestamp != nil || !selector.Matches(labels.Set(peer.Labels)) {
+				continue
+			}
+			if podIsScheduled(peer) {
+				ready = true
+				break
+			}
+		}
+		if !ready {
+			return false, fmt.Sprintf("waiting for a scheduled replica of predecessor deployment %s/%s", deployment.Namespace, deployment.Name), nil
+		}
+	}
+
+	return true, "", nil
+}
+
+func podIsScheduled(pod *v1.Pod) bool {
+	if pod.Spec.NodeName == "" {
+		return false
+	}
+	for _, condition := range pod.Status.Conditions {
+		if condition.Type == v1.PodScheduled && condition.Status == v1.ConditionTrue {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *preScoreState) Clone() framework.StateData {

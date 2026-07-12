@@ -87,7 +87,7 @@ func (pl *Nas) PreScore(ctx context.Context, state *framework.CycleState, pod *v
 	peers := make([]peerPlacement, 0, len(pods.Items))
 	for i := range pods.Items {
 		peerPod := &pods.Items[i]
-		if peerPod.Spec.NodeName == "" || !sophos.SameGroup(pod, peerPod) || !sophos.HasLowerOrEqualIndex(pod, peerPod) {
+		if peerPod.Spec.NodeName == "" || !sophos.SameGroup(pod, peerPod) {
 			continue
 		}
 		peerNode, ok := nodeByName[peerPod.Spec.NodeName]

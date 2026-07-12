@@ -36,6 +36,8 @@ import (
 	"sigs.k8s.io/scheduler-plugins/pkg/sophos/architectureaware"
 	"sigs.k8s.io/scheduler-plugins/pkg/sophos/gpuaware"
 	"sigs.k8s.io/scheduler-plugins/pkg/sophos/loadawareresourcesbalancedallocation"
+	"sigs.k8s.io/scheduler-plugins/pkg/sophos/nas"
+	"sigs.k8s.io/scheduler-plugins/pkg/sophos/netmarks"
 	"sigs.k8s.io/scheduler-plugins/pkg/sophos/networkaware"
 	"sigs.k8s.io/scheduler-plugins/pkg/sophos/networkawarelocalai"
 	"sigs.k8s.io/scheduler-plugins/pkg/sophos/networksloaware"
@@ -71,8 +73,10 @@ func main() {
 		app.WithPlugin(podstate.Name, podstate.New),
 		app.WithPlugin(qos.Name, qos.New),
 		app.WithPlugin(loadawareresourcesbalancedallocation.Name, loadawareresourcesbalancedallocation.New),
+		app.WithPlugin(nas.Name, nas.New),
 		app.WithPlugin(networkaware.Name, networkaware.New),
 		app.WithPlugin(networkawarelocalai.Name, networkawarelocalai.New),
+		app.WithPlugin(netmarks.Name, netmarks.New),
 		app.WithPlugin(networksloaware.Name, networksloaware.New),
 		app.WithPlugin(gpuaware.Name, gpuaware.New),
 		app.WithPlugin(architectureaware.Name, architectureaware.New),

@@ -46,25 +46,6 @@ plugins:
     - loadAwareResourcesBalancedAllocation
     - networkAwareLocalAi
     - architectureAware
-  preBind:
-    enabled:
-      - name: ArchitectureAware
-  score:
-    enabled:
-      - name: NetworkAwareLocalAi
-      - name: LoadAwareResourcesBalancedAllocation
-  preScore:
-    enabled:
-      - name: NetworkAwareLocalAi
-  # score:
-  #   enabled:
-  #     - name: QoSAware
-  #       weight: 2
-#  queueSort:
-#    enabled:
-#      - SortingGpuAware
-#    disabled:
-#      - PrioritySort
 
 # Customize the enabled plugins' config.
 # Refer to the "pluginConfig" section of manifests/<plugin>/scheduler-config.yaml.

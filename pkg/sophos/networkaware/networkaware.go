@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"strconv"
+	// "strconv"
 
-	appsv1 "k8s.io/api/apps/v1"
+	// appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
+	// "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
@@ -49,8 +49,8 @@ type peerPlacement struct {
 	traffic float64
 }
 
-var _ = framework.PreEnqueuePlugin(&NetworkAware{})
-var _ = framework.EnqueueExtensions(&NetworkAware{})
+// var _ = framework.PreEnqueuePlugin(&NetworkAware{})
+// var _ = framework.EnqueueExtensions(&NetworkAware{})
 var _ = framework.QueueSortPlugin(&NetworkAware{})
 var _ = framework.PreScorePlugin(&NetworkAware{})
 var _ = framework.ScorePlugin(&NetworkAware{})
@@ -72,7 +72,7 @@ func (pl *NetworkAware) Less(pInfo1, pInfo2 *framework.QueuedPodInfo) bool {
 	return (&queuesort.PrioritySort{}).Less(pInfo1, pInfo2)
 }
 
-func (pl *NetworkAware) PreEnqueue(ctx context.Context, pod *v1.Pod) *framework.Status {
+/*func (pl *NetworkAware) PreEnqueue(ctx context.Context, pod *v1.Pod) *framework.Status {
 	index, ok := sophos.GetPodIndex(pod)
 	if !ok || index <= 0 {
 		return nil
@@ -168,7 +168,7 @@ func podIsScheduled(pod *v1.Pod) bool {
 		}
 	}
 	return false
-}
+}*/
 
 func (s *preScoreState) Clone() framework.StateData {
 	clone := &preScoreState{

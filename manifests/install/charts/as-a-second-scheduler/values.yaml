@@ -70,15 +70,15 @@ pluginConfig:
           args:
             - p2p-worker
         - labelValue: "amd"
-          tag: "latest-aio-cpu"
+          tag: "latest"
           backendsPath: "/backends/amd64"
           args:
-            - worker
+            - p2p-worker
         - labelValue: "amd64"
-          tag: "latest-aio-cpu"
+          tag: "latest"
           backendsPath: "/backends/amd64"
           args:
-            - worker
+            - p2p-worker
         - labelValue: "arm64"
           tag: "latest-nvidia-l4t-arm64"
           backendsPath: "/backends/arm64"

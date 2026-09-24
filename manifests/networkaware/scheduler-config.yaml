@@ -1,0 +1,22 @@
+apiVersion: kubescheduler.config.k8s.io/v1
+kind: KubeSchedulerConfiguration
+leaderElection:
+  leaderElect: false
+clientConnection:
+  kubeconfig: /etc/kubernetes/scheduler.conf
+profiles:
+  - schedulerName: network-aware-scheduler
+    plugins:
+      queueSort:
+        disabled:
+          - name: "*"
+        enabled:
+          - name: NetworkAware
+      multiPoint:
+        enabled:
+          - name: NetworkAware
+            weight: 100
+    pluginConfig:
+      - name: NetworkAware
+        args:
+          ignoreSameZoneNetworkCost: true

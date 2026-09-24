@@ -24,6 +24,14 @@ import (
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+type NetworkAwareArgs struct {
+	metav1.TypeMeta `json:",inline"`
+
+	IgnoreSameZoneNetworkCost *bool `json:"ignoreSameZoneNetworkCost,omitempty"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // CoschedulingArgs defines the scheduling parameters for Coscheduling plugin.
 type CoschedulingArgs struct {
 	metav1.TypeMeta `json:",inline"`

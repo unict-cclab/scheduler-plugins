@@ -211,13 +211,13 @@ func (pl *NetworkAware) NormalizeScore(ctx context.Context, _ fwk.CycleState, po
 	}
 
 	oldRange := highest - lowest
-	newRange := fwk.MaxNodeScore - fwk.MinNodeScore
+	newRange := fwk.MaxScore - fwk.MinScore
 	logger := klog.FromContext(ctx).WithValues("plugin", Name, "pod", klog.KObj(pod))
 	for i, nodeScore := range scores {
 		if oldRange == 0 {
-			scores[i].Score = fwk.MinNodeScore
+			scores[i].Score = fwk.MinScore
 		} else {
-			scores[i].Score = ((nodeScore.Score - lowest) * newRange / oldRange) + fwk.MinNodeScore
+			scores[i].Score = ((nodeScore.Score - lowest) * newRange / oldRange) + fwk.MinScore
 		}
 		logger.V(4).Info("Normalized node score", "node", scores[i].Name, "score", scores[i].Score)
 	}

@@ -34,6 +34,8 @@ import (
 	"sigs.k8s.io/scheduler-plugins/pkg/podstate"
 	"sigs.k8s.io/scheduler-plugins/pkg/preemptiontoleration"
 	"sigs.k8s.io/scheduler-plugins/pkg/qos"
+	"sigs.k8s.io/scheduler-plugins/pkg/sophos/nas"
+	"sigs.k8s.io/scheduler-plugins/pkg/sophos/netmarks"
 	"sigs.k8s.io/scheduler-plugins/pkg/sophos/networkaware"
 	"sigs.k8s.io/scheduler-plugins/pkg/sysched"
 	"sigs.k8s.io/scheduler-plugins/pkg/trimaran/loadvariationriskbalancing"
@@ -68,6 +70,8 @@ func main() {
 		app.WithPlugin(podstate.Name, podstate.New),
 		app.WithPlugin(qos.Name, qos.New),
 		app.WithPlugin(networkaware.Name, networkaware.New),
+		app.WithPlugin(nas.Name, nas.New),
+		app.WithPlugin(netmarks.Name, netmarks.New),
 	)
 
 	code := cli.Run(command)

@@ -175,9 +175,9 @@ func (pl *Nas) NormalizeScore(_ context.Context, _ framework.CycleState, pod *v1
 	oldRange := highest - lowest
 	for i := range scores {
 		if oldRange == 0 {
-			scores[i].Score = framework.MinNodeScore
+			scores[i].Score = framework.MinScore
 		} else {
-			scores[i].Score = (scores[i].Score - lowest) * (framework.MaxNodeScore - framework.MinNodeScore) / oldRange
+			scores[i].Score = (scores[i].Score - lowest) * (framework.MaxScore - framework.MinScore) / oldRange
 		}
 		klog.Infof("%s normalized score of node %q for pod %q: %d", logPrefix, scores[i].Name, pod.Name, scores[i].Score)
 	}

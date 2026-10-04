@@ -190,7 +190,7 @@ func (pl *NetworkAware) Score(_ context.Context, state fwk.CycleState, pod *v1.P
 		cost += communicationCost(metrics[i], preScore.maxMetrics, peer.traffic, preScore.maxTraffic)
 	}
 
-	score := -int64(math.Round(cost))
+	score := -int64(math.Round(cost * 1000))
 	klog.Infof("%s raw score of node %q for pod %q: %d", logPrefix, nodeName, pod.Name, score)
 	return score, nil
 }

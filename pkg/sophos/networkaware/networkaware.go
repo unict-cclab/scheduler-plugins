@@ -17,7 +17,8 @@ import (
 )
 
 const (
-	Name = "NetworkAware"
+	Name      = "NetworkAware"
+	logPrefix = "[sophos][NetworkAware]"
 
 	preScoreStateKey fwk.StateKey = "PreScore" + Name
 )
@@ -84,8 +85,7 @@ func (s *preScoreState) Clone() fwk.StateData {
 }
 
 func (pl *NetworkAware) PreScore(ctx context.Context, state fwk.CycleState, pod *v1.Pod, nodes []fwk.NodeInfo) *fwk.Status {
-	logger := klog.FromContext(ctx).WithValues("plugin", Name, "pod", klog.KObj(pod))
-	logger.V(4).Info("Pre-scoring pod")
+	klog.Infof("%s pre-scoring pod %s/%s", logPrefix, pod.Namespace, pod.Name)
 
 	pods, err := pl.handle.ClientSet().CoreV1().Pods(pod.Namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -94,7 +94,7 @@ func (pl *NetworkAware) PreScore(ctx context.Context, state fwk.CycleState, pod 
 
 	deployment, err := sophos.GetOwnerDeployment(ctx, pl.handle, pod)
 	if err != nil {
-		logger.V(4).Info("Cannot get owner Deployment; traffic costs will be zero", "err", err)
+		klog.Infof("%s cannot get traffic annotations for pod %s/%s; traffic costs will be zero: %v", logPrefix, pod.Namespace, pod.Name, err)
 	}
 
 	clusterNodes, err := pl.handle.SnapshotSharedLister().NodeInfos().List()
@@ -162,7 +162,7 @@ func (pl *NetworkAware) PreScore(ctx context.Context, state fwk.CycleState, pod 
 	return nil
 }
 
-func (pl *NetworkAware) Score(ctx context.Context, state fwk.CycleState, pod *v1.Pod, nodeInfo fwk.NodeInfo) (int64, *fwk.Status) {
+func (pl *NetworkAware) Score(_ context.Context, state fwk.CycleState, pod *v1.Pod, nodeInfo fwk.NodeInfo) (int64, *fwk.Status) {
 	if nodeInfo == nil || nodeInfo.Node() == nil {
 		return 0, fwk.AsStatus(fmt.Errorf("node information is missing"))
 	}
@@ -190,15 +190,16 @@ func (pl *NetworkAware) Score(ctx context.Context, state fwk.CycleState, pod *v1
 		cost += communicationCost(metrics[i], preScore.maxMetrics, peer.traffic, preScore.maxTraffic)
 	}
 
-	klog.FromContext(ctx).V(4).Info("Calculated network-aware score", "plugin", Name, "pod", klog.KObj(pod), "node", nodeName, "cost", cost)
-	return -int64(math.Round(cost)), nil
+	score := -int64(math.Round(cost))
+	klog.Infof("%s raw score of node %q for pod %q: %d", logPrefix, nodeName, pod.Name, score)
+	return score, nil
 }
 
 func (pl *NetworkAware) ScoreExtensions() fwk.ScoreExtensions {
 	return pl
 }
 
-func (pl *NetworkAware) NormalizeScore(ctx context.Context, _ fwk.CycleState, pod *v1.Pod, scores fwk.NodeScoreList) *fwk.Status {
+func (pl *NetworkAware) NormalizeScore(_ context.Context, _ fwk.CycleState, pod *v1.Pod, scores fwk.NodeScoreList) *fwk.Status {
 	if len(scores) == 0 {
 		return nil
 	}
@@ -212,26 +213,25 @@ func (pl *NetworkAware) NormalizeScore(ctx context.Context, _ fwk.CycleState, po
 
 	oldRange := highest - lowest
 	newRange := fwk.MaxScore - fwk.MinScore
-	logger := klog.FromContext(ctx).WithValues("plugin", Name, "pod", klog.KObj(pod))
 	for i, nodeScore := range scores {
 		if oldRange == 0 {
 			scores[i].Score = fwk.MinScore
 		} else {
 			scores[i].Score = ((nodeScore.Score - lowest) * newRange / oldRange) + fwk.MinScore
 		}
-		logger.V(4).Info("Normalized node score", "node", scores[i].Name, "score", scores[i].Score)
+		klog.Infof("%s normalized score of node %q for pod %q: %d", logPrefix, scores[i].Name, pod.Name, scores[i].Score)
 	}
 
 	return nil
 }
 
-func New(ctx context.Context, obj runtime.Object, handle fwk.Handle) (fwk.Plugin, error) {
+func New(_ context.Context, obj runtime.Object, handle fwk.Handle) (fwk.Plugin, error) {
 	args, ok := obj.(*config.NetworkAwareArgs)
 	if !ok {
 		return nil, fmt.Errorf("want args to be of type NetworkAwareArgs, got %T", obj)
 	}
 
-	klog.FromContext(ctx).V(4).Info("Creating plugin", "plugin", Name)
+	klog.Infof("%s creating plugin", logPrefix)
 	return &NetworkAware{
 		handle:                    handle,
 		ignoreSameZoneNetworkCost: args.IgnoreSameZoneNetworkCost,

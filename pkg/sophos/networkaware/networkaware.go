@@ -145,9 +145,11 @@ func (pl *NetworkAware) PreScore(ctx context.Context, state fwk.CycleState, pod 
 				packetLoss: sophos.GetNodePacketLoss(candidate, peer.node),
 				zeroCost:   pl.ignoreSameZoneNetworkCost && sameZone(candidate, peer.node),
 			}
-			maxMetrics.latency = max(maxMetrics.latency, metrics.latency)
-			maxMetrics.bandwidth = max(maxMetrics.bandwidth, metrics.bandwidth)
-			maxMetrics.packetLoss = max(maxMetrics.packetLoss, metrics.packetLoss)
+			if !metrics.zeroCost {
+				maxMetrics.latency = max(maxMetrics.latency, metrics.latency)
+				maxMetrics.bandwidth = max(maxMetrics.bandwidth, metrics.bandwidth)
+				maxMetrics.packetLoss = max(maxMetrics.packetLoss, metrics.packetLoss)
+			}
 			metricsForNode = append(metricsForNode, metrics)
 		}
 		metricsByNode[candidate.Name] = metricsForNode
